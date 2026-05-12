@@ -24,11 +24,14 @@ async function read() {
   if (memCache) return memCache;
   await ensureFile();
   const txt = await fs.readFile(FILE, 'utf8');
+  let arr;
   try {
-    memCache = JSON.parse(txt) || [];
+    arr = JSON.parse(txt) || [];
   } catch {
-    memCache = [];
+    arr = [];
   }
+  // Backward-compat: sản phẩm cũ chưa có `status` mặc định là 'active'.
+  memCache = arr.map((p) => ({ status: 'active', ...p }));
   return memCache;
 }
 
@@ -41,8 +44,28 @@ async function write(arr) {
   return writeQueue;
 }
 
+/** Tất cả sản phẩm (dùng cho admin). */
 export async function listProducts() {
   return read();
+}
+
+/** Chỉ sản phẩm có status = active (dùng cho public website). */
+export async function listActiveProducts() {
+  const all = await read();
+  return all.filter((p) => (p.status || 'active') === 'active');
+}
+
+/** Đổi status sản phẩm. Trả về product mới hoặc null nếu không tìm thấy. */
+export async function setStatus(id, status) {
+  if (!['active', 'hidden'].includes(status)) {
+    throw new Error('Status không hợp lệ. Chỉ chấp nhận: active | hidden.');
+  }
+  const all = await read();
+  const idx = all.findIndex((p) => p.id === id);
+  if (idx < 0) return null;
+  all[idx] = { ...all[idx], status, updatedAt: new Date().toISOString() };
+  await write(all);
+  return all[idx];
 }
 
 export async function getProduct(id) {
@@ -70,6 +93,7 @@ export async function saveProduct(product) {
     ...product,
     id,
     slug: idx >= 0 ? all[idx].slug : slug,
+    status: product.status || (idx >= 0 ? all[idx].status : 'active') || 'active',
     updatedAt: now,
     createdAt: idx >= 0 ? all[idx].createdAt : now,
   };

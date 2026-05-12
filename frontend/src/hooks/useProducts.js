@@ -35,12 +35,15 @@ export function useProducts() {
     reload();
   }, [reload]);
 
-  // Sản phẩm thật (admin lưu) ưu tiên. Mock chỉ append nếu chưa có sản phẩm thật,
-  // hoặc khi cờ env cho phép.
-  const mockWithFlag = MOCK.map((p) => ({ ...p, __isMock: true }));
-  const products = apiProducts.length > 0
+  // Sản phẩm thật (admin lưu) ưu tiên. Mock chỉ append nếu chưa có sản phẩm thật.
+  // apiProducts đã được backend filter status=active. Mock không có field status nên coi như active.
+  const mockWithFlag = MOCK.map((p) => ({ status: 'active', ...p, __isMock: true }));
+  const merged = apiProducts.length > 0
     ? [...apiProducts, ...mockWithFlag]
     : mockWithFlag;
+
+  // Public chỉ hiển thị active (an toàn 2 lớp, phòng có data lẫn từ nguồn khác).
+  const products = merged.filter((p) => (p.status || 'active') === 'active');
 
   return { products, apiProducts, mockProducts: mockWithFlag, loading, error, reload };
 }

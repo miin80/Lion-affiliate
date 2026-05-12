@@ -47,10 +47,25 @@ export function importProductApi(sourceUrl, affiliateUrl) {
   });
 }
 
-/** Lấy danh sách sản phẩm đã lưu. */
+/** Lấy danh sách sản phẩm public (chỉ status=active). */
 export async function fetchProducts() {
   const data = await request('/api/products');
   return data.products || [];
+}
+
+/** Lấy TẤT CẢ sản phẩm cho trang admin (active + hidden). */
+export async function fetchAdminProducts() {
+  const data = await request('/api/products/admin');
+  return data.products || [];
+}
+
+/** Đổi trạng thái sản phẩm: 'active' (hiện) | 'hidden' (ẩn). */
+export async function updateProductStatusApi(id, status) {
+  const data = await request(`/api/products/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+  return data.product;
 }
 
 /** Lưu (tạo mới hoặc update) một sản phẩm. */

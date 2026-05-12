@@ -1,16 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Seo from '../components/Seo';
 import PlatformBadge from '../components/PlatformBadge';
 import ProductCard from '../components/ProductCard';
 import MediaListEditor from '../components/admin/MediaListEditor';
 import TagsInput from '../components/admin/TagsInput';
+import ProductManager from '../components/admin/ProductManager';
 import { detectPlatform } from '../config/affiliate';
-import {
-  importProductApi,
-  fetchProducts,
-  saveProductApi,
-  deleteProductApi,
-} from '../services/api';
+import { importProductApi, saveProductApi } from '../services/api';
 import { formatVND } from '../utils/format';
 import { CATEGORIES } from '../data/categories';
 
@@ -40,28 +36,16 @@ const BADGE_OPTIONS = [
 ];
 
 export default function Admin() {
+  const [tab, setTab] = useState('import'); // 'import' | 'manage'
   const [draft, setDraft] = useState(EMPTY);
   const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [warning, setWarning] = useState('');
   const [success, setSuccess] = useState('');
-  const [savedList, setSavedList] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const platform = draft.sourceUrl ? detectPlatform(draft.sourceUrl) : null;
-
-  const loadSaved = async () => {
-    try {
-      const data = await fetchProducts();
-      setSavedList(data);
-    } catch (err) {
-      console.warn('Không load được products:', err);
-    }
-  };
-  useEffect(() => {
-    loadSaved();
-  }, []);
 
   const update = (patch) => setDraft((d) => ({ ...d, ...patch }));
   const toggleBadge = (key) =>
@@ -148,10 +132,9 @@ export default function Admin() {
         platform: platform?.key || 'other',
       };
       const saved = await saveProductApi(payload);
-      setSuccess(`✓ Đã lưu sản phẩm "${saved.title}". Khách bấm Mua ngay sẽ đi qua link affiliate của bạn.`);
+      setSuccess(`✓ Đã lưu "${saved.title}". Sang tab "Quản lý sản phẩm" để xem/ẩn/xoá.`);
       setDraft(EMPTY);
       setPreviewOpen(false);
-      loadSaved();
     } catch (err) {
       setError(`Không lưu được: ${err.message}. Hãy đảm bảo backend đang chạy (npm run dev trong backend/).`);
     } finally {
@@ -159,26 +142,33 @@ export default function Admin() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Xoá sản phẩm này khỏi website?')) return;
-    try {
-      await deleteProductApi(id);
-      loadSaved();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
   return (
     <>
-      <Seo title="Quản trị · Import sản phẩm" />
+      <Seo title="Quản trị" />
       <section className="container-page mt-6 sm:mt-10">
-        <h1 className="text-2xl font-extrabold sm:text-3xl">⚙️ Import sản phẩm affiliate</h1>
+        <h1 className="text-2xl font-extrabold sm:text-3xl">⚙️ Quản trị sản phẩm</h1>
         <p className="mt-1 text-sm text-brand-ink-500">
-          Dán <strong>link gốc</strong> (Shopee / TikTok Shop / Lazada / website bán hàng) để lấy ảnh/video/thông tin.
-          Sau đó dán <strong>link affiliate</strong> của bạn — đó mới là link khách bấm mua.
+          Import sản phẩm affiliate từ link gốc, sau đó quản lý / ẩn / xoá tại đây.
         </p>
 
+        {/* TAB NAV */}
+        <div className="mt-5 inline-flex rounded-full bg-brand-ink-100 p-1">
+          <TabButton active={tab === 'import'} onClick={() => setTab('import')}>
+            📥 Import sản phẩm
+          </TabButton>
+          <TabButton active={tab === 'manage'} onClick={() => setTab('manage')}>
+            📦 Quản lý sản phẩm
+          </TabButton>
+        </div>
+
+        {tab === 'manage' && (
+          <div className="mt-6">
+            <ProductManager />
+          </div>
+        )}
+
+        {tab === 'import' && (
+        <>
         <div className="mt-3 rounded-2xl bg-brand-orange-50 p-4 text-sm ring-1 ring-brand-orange-200">
           <div className="font-bold text-brand-orange-700">⚡ Quan trọng</div>
           <ul className="mt-1 space-y-0.5 text-brand-ink-700">
@@ -406,29 +396,25 @@ export default function Admin() {
           </div>
         )}
 
-        {/* SAVED PRODUCTS */}
-        <div className="mt-10">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-extrabold">📦 Sản phẩm đã lưu ({savedList.length})</h2>
-            <button onClick={loadSaved} className="text-xs font-semibold text-brand-orange-600 hover:underline">
-              ↻ Reload
-            </button>
-          </div>
-
-          {savedList.length === 0 ? (
-            <div className="rounded-3xl bg-brand-ink-50 p-8 text-center text-sm text-brand-ink-500">
-              Chưa có sản phẩm nào — import sản phẩm đầu tiên ở phía trên.
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {savedList.map((p) => (
-                <SavedRow key={p.id} product={p} onDelete={() => handleDelete(p.id)} />
-              ))}
-            </div>
-          )}
-        </div>
+        </>
+        )}
       </section>
     </>
+  );
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+        active
+          ? 'bg-white text-brand-ink-900 shadow-soft'
+          : 'text-brand-ink-500 hover:text-brand-ink-700'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -453,38 +439,3 @@ function Alert({ type, children }) {
   );
 }
 
-function SavedRow({ product, onDelete }) {
-  return (
-    <div className="flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ring-brand-ink-100">
-      <img
-        src={product.images?.[0] || 'https://placehold.co/120x120/f1f5f9/64748b?text=?'}
-        alt={product.title}
-        className="h-20 w-20 shrink-0 rounded-xl object-cover"
-        loading="lazy"
-      />
-      <div className="flex flex-1 flex-col gap-1 text-sm">
-        <PlatformBadge platform={product.platform} className="w-fit text-[10px]" />
-        <div className="line-clamp-2 font-semibold">{product.title}</div>
-        <div className="font-bold text-brand-orange-600">
-          {product.price ? formatVND(product.price) : '—'}
-        </div>
-        <a
-          href={product.affiliateUrl}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="truncate text-[10px] text-brand-blue-600 hover:underline"
-          title={product.affiliateUrl}
-        >
-          🔗 {product.affiliateUrl}
-        </a>
-      </div>
-      <button
-        onClick={onDelete}
-        className="self-start text-xs text-red-500 hover:underline"
-        title="Xoá"
-      >
-        🗑
-      </button>
-    </div>
-  );
-}

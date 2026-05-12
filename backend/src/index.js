@@ -5,8 +5,10 @@ import { scrapeRoute } from './routes/scrape.js';
 import { importProductRoute } from './routes/importProduct.js';
 import {
   listRoute,
+  listAdminRoute,
   getRoute,
   saveRoute,
+  statusRoute,
   deleteRoute,
 } from './routes/products.js';
 
@@ -28,14 +30,19 @@ app.post('/api/scrape', scrapeRoute);
 // Đây là endpoint chuẩn theo spec. /api/scrape vẫn giữ cho compat.
 app.post('/api/import-product', importProductRoute);
 
-// CRUD sản phẩm (đã lưu sau khi admin import + chỉnh sửa).
+// CRUD sản phẩm.
+// Public: chỉ trả status=active.
 app.get('/api/products', listRoute);
+// Admin: trả tất cả (active + hidden).
+app.get('/api/products/admin', listAdminRoute);
 app.get('/api/products/:id', getRoute);
 app.post('/api/products', saveRoute);     // create or update (truyền id nếu update)
 app.put('/api/products/:id', (req, res) => {
   req.body.id = req.params.id;
   return saveRoute(req, res);
 });
+// Ẩn / hiện lại sản phẩm.
+app.patch('/api/products/:id/status', statusRoute);
 app.delete('/api/products/:id', deleteRoute);
 
 app.use((err, _req, res, _next) => {
