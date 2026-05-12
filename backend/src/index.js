@@ -26,13 +26,33 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 
-// Strip trailing slash + whitespace để khớp với Origin header trình duyệt gửi.
-const allowedOrigins =
+// Parse origins từ env (strip slash, whitespace).
+const allowedList =
   CORS_ORIGIN === '*'
-    ? true
+    ? null
     : CORS_ORIGIN.split(',').map((s) => s.trim().replace(/\/+$/, ''));
 
-app.use(cors({ origin: allowedOrigins }));
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow same-origin / no-origin requests (Postman, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    // Wildcard
+    if (allowedList === null) return callback(null, true);
+    // Exact match (after normalization)
+    const normalized = origin.replace(/\/+$/, '');
+    if (allowedList.includes(normalized)) return callback(null, true);
+    console.warn(`[CORS] Blocked origin: "${origin}". Allowed: ${JSON.stringify(allowedList)}`);
+    return callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+// Đảm bảo preflight cho mọi route
+app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/health', (_req, res) => {
