@@ -5,6 +5,7 @@ import {
   saveProduct,
   deleteProduct,
   setStatus,
+  bulkSetStatus,
 } from '../store/products.js';
 
 /** GET /api/products — chỉ trả sản phẩm status=active (public). */
@@ -115,5 +116,16 @@ export async function deleteRoute(req, res) {
     res.json({ ok });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+}
+
+/** PATCH /api/products/bulk  body: { ids: [...], status: 'active'|'hidden'|'trash' } */
+export async function bulkStatusRoute(req, res) {
+  try {
+    const { ids, status } = req.body || {};
+    const result = await bulkSetStatus(ids, status);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 }

@@ -12,6 +12,9 @@ import CategoriesManager from '../components/admin/CategoriesManager';
 import CollectionsManager from '../components/admin/CollectionsManager';
 import BlogsManager from '../components/admin/BlogsManager';
 import GoogleSheetManager from '../components/admin/GoogleSheetManager';
+import AdminLayout from '../components/admin/AdminLayout';
+import Dashboard from '../components/admin/Dashboard';
+import TrashManager from '../components/admin/TrashManager';
 import { detectPlatform } from '../config/affiliate';
 import { importProductApi, saveProductApi } from '../services/api';
 import { logout, getUser } from '../services/auth';
@@ -46,13 +49,14 @@ const BADGE_OPTIONS = [
 export default function Admin() {
   const navigate = useNavigate();
   const user = getUser();
-  const [tab, setTab] = useState('import'); // 'import' | 'manage' | 'settings'
+  const [tab, setTab] = useState('dashboard'); // default landing
   const [draft, setDraft] = useState(EMPTY);
 
   const handleLogout = () => {
     logout();
     navigate('/admin/login', { replace: true });
   };
+  void user; void handleLogout; // sidebar handles these now
   const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -160,53 +164,25 @@ export default function Admin() {
   return (
     <>
       <Seo title="Quản trị" />
-      <section className="container-page mt-6 sm:mt-10">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-extrabold sm:text-3xl">⚙️ Quản trị</h1>
-            <p className="mt-1 text-sm text-brand-ink-500">
-              Quản lý sản phẩm, cài đặt website — không cần sửa code.
-            </p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {user && (
-              <span className="hidden text-xs text-brand-ink-500 sm:inline">
-                👤 {user.username}
-              </span>
-            )}
-            <button
-              onClick={handleLogout}
-              className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-red-600 ring-1 ring-red-200 hover:bg-red-50"
-            >
-              🚪 Đăng xuất
-            </button>
-          </div>
-        </div>
-
-        {/* TAB NAV */}
-        <div className="mt-5 -mx-4 flex gap-1 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:px-0">
-          <div className="inline-flex shrink-0 gap-1 rounded-full bg-brand-ink-100 p-1">
-            <TabButton active={tab === 'import'} onClick={() => setTab('import')}>📥 Import</TabButton>
-            <TabButton active={tab === 'manage'} onClick={() => setTab('manage')}>📦 Sản phẩm</TabButton>
-            <TabButton active={tab === 'videos'} onClick={() => setTab('videos')}>🎬 Video</TabButton>
-            <TabButton active={tab === 'collections'} onClick={() => setTab('collections')}>📚 Bộ sưu tập</TabButton>
-            <TabButton active={tab === 'categories'} onClick={() => setTab('categories')}>🏷 Danh mục</TabButton>
-            <TabButton active={tab === 'blogs'} onClick={() => setTab('blogs')}>📝 Blog</TabButton>
-            <TabButton active={tab === 'sheet'} onClick={() => setTab('sheet')}>📊 Google Sheet</TabButton>
-            <TabButton active={tab === 'settings'} onClick={() => setTab('settings')}>⚙️ Cài đặt</TabButton>
-          </div>
-        </div>
-
-        {tab === 'manage' && <div className="mt-6"><ProductManager /></div>}
-        {tab === 'videos' && <div className="mt-6"><VideoManager /></div>}
-        {tab === 'collections' && <div className="mt-6"><CollectionsManager /></div>}
-        {tab === 'categories' && <div className="mt-6"><CategoriesManager /></div>}
-        {tab === 'blogs' && <div className="mt-6"><BlogsManager /></div>}
-        {tab === 'sheet' && <div className="mt-6"><GoogleSheetManager /></div>}
-        {tab === 'settings' && <div className="mt-6"><SettingsManager /></div>}
+      <AdminLayout activeTab={tab} onTabChange={setTab}>
+        {tab === 'dashboard' && <Dashboard onTabChange={setTab} />}
+        {tab === 'manage' && <ProductManager />}
+        {tab === 'videos' && <VideoManager />}
+        {tab === 'collections' && <CollectionsManager />}
+        {tab === 'categories' && <CategoriesManager />}
+        {tab === 'blogs' && <BlogsManager />}
+        {tab === 'sheet' && <GoogleSheetManager />}
+        {tab === 'settings' && <SettingsManager />}
+        {tab === 'trash' && <TrashManager />}
 
         {tab === 'import' && (
         <>
+        <div>
+          <h1 className="text-2xl font-extrabold sm:text-3xl">📥 Import sản phẩm affiliate</h1>
+          <p className="mt-1 text-sm text-brand-ink-500">
+            Dán Source URL + Affiliate URL → backend tự lấy ảnh/giá → bạn chỉnh sửa → Lưu.
+          </p>
+        </div>
         <div className="mt-3 rounded-2xl bg-brand-orange-50 p-4 text-sm ring-1 ring-brand-orange-200">
           <div className="font-bold text-brand-orange-700">⚡ Quan trọng</div>
           <ul className="mt-1 space-y-0.5 text-brand-ink-700">
@@ -436,23 +412,8 @@ export default function Admin() {
 
         </>
         )}
-      </section>
+      </AdminLayout>
     </>
-  );
-}
-
-function TabButton({ active, onClick, children }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-        active
-          ? 'bg-white text-brand-ink-900 shadow-soft'
-          : 'text-brand-ink-500 hover:text-brand-ink-700'
-      }`}
-    >
-      {children}
-    </button>
   );
 }
 

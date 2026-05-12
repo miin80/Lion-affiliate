@@ -9,9 +9,11 @@ import {
   getRoute,
   saveRoute,
   bulkSaveRoute,
+  bulkStatusRoute,
   statusRoute,
   deleteRoute,
 } from './routes/products.js';
+import { clickRoute, summaryRoute } from './routes/analytics.js';
 import { getSettingsRoute, putSettingsRoute } from './routes/settings.js';
 import { loginRoute, meRoute } from './routes/auth.js';
 import { requireAuth } from './middleware/auth.js';
@@ -84,6 +86,7 @@ app.post('/api/import-product', requireAuth, importProductRoute);
 //    routes có param (/:id), nếu không Express sẽ match :id="admin" → 404.
 app.get('/api/products/admin', requireAuth, listAdminRoute);
 app.post('/api/products/bulk', requireAuth, bulkSaveRoute);
+app.patch('/api/products/bulk', requireAuth, bulkStatusRoute);
 app.post('/api/products', requireAuth, saveRoute);
 app.get('/api/products/:id', getRoute);   // public detail by id (sau /admin)
 app.put('/api/products/:id', requireAuth, (req, res) => {
@@ -94,6 +97,12 @@ app.patch('/api/products/:id/status', requireAuth, statusRoute);
 app.delete('/api/products/:id', requireAuth, deleteRoute);
 
 app.put('/api/site-settings', requireAuth, putSettingsRoute);
+
+// ============ ANALYTICS ============
+// POST public — khách bấm Mua/Xem sẽ tracking. Không cần auth.
+app.post('/api/analytics/click', clickRoute);
+// GET admin — xem stats.
+app.get('/api/analytics/summary', requireAuth, summaryRoute);
 
 // ============ GOOGLE SHEET IMPORT (admin only) ============
 app.get('/api/google-sheet/settings', requireAuth, getSheetSettingsRoute);

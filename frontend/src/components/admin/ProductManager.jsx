@@ -10,7 +10,7 @@ import { formatVND, formatDate } from '../../utils/format';
 import EditProductModal from './EditProductModal';
 
 const STATUS_FILTERS = [
-  { key: 'all', label: 'Tất cả' },
+  { key: 'all', label: 'Tất cả (không tính trash)' },
   { key: 'active', label: 'Đang hiển thị' },
   { key: 'hidden', label: 'Đã ẩn' },
 ];
@@ -85,18 +85,19 @@ export default function ProductManager() {
     }
   };
 
-  const remove = async (product) => {
+  // Đưa vào thùng rác (soft delete) — sản phẩm có thể khôi phục từ tab Thùng rác.
+  const moveToTrash = async (product) => {
     if (
       !window.confirm(
-        `Bạn chắc chắn muốn xoá "${product.title}"?\n\nHành động này KHÔNG thể hoàn tác.\nSản phẩm sẽ bị xoá vĩnh viễn khỏi products.json.`
+        `Đưa "${product.title}" vào Thùng rác?\n\nSản phẩm sẽ ẩn khỏi website. Có thể khôi phục từ tab "🗑 Thùng rác".`
       )
     )
       return;
     setBusyId(product.id);
     try {
-      await deleteProductApi(product.id);
-      setList((arr) => arr.filter((p) => p.id !== product.id));
-      flashToast(`🗑 Đã xoá vĩnh viễn "${product.title}"`);
+      const updated = await updateProductStatusApi(product.id, 'trash');
+      setList((arr) => arr.map((p) => (p.id === product.id ? updated : p)));
+      flashToast(`🗑 Đã đưa "${product.title}" vào Thùng rác`);
     } catch (err) {
       alert(`Lỗi: ${err.message}`);
     } finally {
@@ -110,7 +111,8 @@ export default function ProductManager() {
   };
 
   const filtered = useMemo(() => {
-    let arr = list;
+    // ProductManager KHÔNG hiển thị trash (xem ở tab Thùng rác riêng)
+    let arr = list.filter((p) => p.status !== 'trash');
     // Status
     if (statusFilter !== 'all') {
       arr = arr.filter((p) => (p.status || 'active') === statusFilter);
@@ -277,7 +279,7 @@ export default function ProductManager() {
               product={p}
               busy={busyId === p.id}
               onToggleStatus={() => toggleStatus(p)}
-              onDelete={() => remove(p)}
+              onDelete={() => moveToTrash(p)}
               onEdit={() => setEditing(p)}
             />
           ))}
@@ -405,8 +407,9 @@ function ProductRow({ product, busy, onToggleStatus, onDelete, onEdit }) {
             onClick={onDelete}
             disabled={busy}
             className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700 transition hover:bg-red-200 disabled:opacity-50"
+            title="Đưa vào thùng rác (có thể khôi phục)"
           >
-            🗑 Xoá vĩnh viễn
+            🗑 Vào thùng rác
           </button>
         </div>
       </div>

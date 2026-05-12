@@ -7,6 +7,7 @@ import Rating from './Rating';
 import { formatVND, formatCompact, discountPercent } from '../utils/format';
 import { getAffiliateUrl } from '../config/affiliate';
 import { CloseIcon, ArrowRight, CheckCircle } from './icons';
+import { trackClick } from '../services/analytics';
 
 /**
  * Modal chi tiết sản phẩm — bottom-sheet trên mobile, dialog giữa trên desktop.
@@ -196,6 +197,7 @@ export default function ProductModal({ product, onClose }) {
                       }
                       target="_blank"
                       rel="noopener nofollow sponsored"
+                      onClick={() => trackClick({ type: 'product', id: product.id, action: 'buy' })}
                       className="btn-primary flex-[1.4] text-sm"
                     >
                       Mua ngay <ArrowRight className="h-4 w-4" />

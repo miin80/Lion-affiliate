@@ -55,17 +55,55 @@ export async function listActiveProducts() {
   return all.filter((p) => (p.status || 'active') === 'active');
 }
 
-/** Đổi status sản phẩm. Trả về product mới hoặc null nếu không tìm thấy. */
+/** Sản phẩm trash. */
+export async function listTrashProducts() {
+  const all = await read();
+  return all.filter((p) => p.status === 'trash');
+}
+
+/** Đổi status sản phẩm. status: 'active' | 'hidden' | 'trash'. */
 export async function setStatus(id, status) {
-  if (!['active', 'hidden'].includes(status)) {
-    throw new Error('Status không hợp lệ. Chỉ chấp nhận: active | hidden.');
+  if (!['active', 'hidden', 'trash'].includes(status)) {
+    throw new Error('Status không hợp lệ. Chỉ chấp nhận: active | hidden | trash.');
   }
   const all = await read();
   const idx = all.findIndex((p) => p.id === id);
   if (idx < 0) return null;
-  all[idx] = { ...all[idx], status, updatedAt: new Date().toISOString() };
+  const now = new Date().toISOString();
+  all[idx] = {
+    ...all[idx],
+    status,
+    updatedAt: now,
+    // Lưu thời điểm chuyển vào trash để hiển thị "ngày xóa"
+    trashedAt: status === 'trash' ? now : null,
+  };
   await write(all);
   return all[idx];
+}
+
+/** Bulk status update — đổi status của nhiều sản phẩm cùng lúc. */
+export async function bulkSetStatus(ids, status) {
+  if (!Array.isArray(ids) || !ids.length) return { updated: 0 };
+  if (!['active', 'hidden', 'trash'].includes(status)) {
+    throw new Error('Status không hợp lệ.');
+  }
+  const all = await read();
+  const now = new Date().toISOString();
+  let count = 0;
+  ids.forEach((id) => {
+    const i = all.findIndex((p) => p.id === id);
+    if (i >= 0) {
+      all[i] = {
+        ...all[i],
+        status,
+        updatedAt: now,
+        trashedAt: status === 'trash' ? now : null,
+      };
+      count++;
+    }
+  });
+  await write(all);
+  return { updated: count };
 }
 
 export async function getProduct(id) {

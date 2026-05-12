@@ -5,6 +5,7 @@ import Rating from './Rating';
 import { formatVND, formatCompact, discountPercent } from '../utils/format';
 import { getAffiliateUrl } from '../config/affiliate';
 import { PlayIcon, ArrowRight } from './icons';
+import { trackClick } from '../services/analytics';
 
 /**
  * ProductCard - phong cách KOL link-bio.
@@ -125,7 +126,10 @@ export default function ProductCard({ product, index = 0, onOpen }) {
             href={buyUrl}
             target="_blank"
             rel="noopener nofollow sponsored"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              trackClick({ type: 'product', id: product.id, action: 'buy' });
+            }}
             className="inline-flex items-center justify-center gap-1 rounded-full bg-brand-orange-500 px-2 py-2 text-[11px] font-bold text-white shadow-cta transition hover:bg-brand-orange-600 sm:text-xs"
           >
             Mua ngay <ArrowRight className="h-3 w-3" />
