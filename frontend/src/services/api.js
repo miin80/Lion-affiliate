@@ -67,13 +67,22 @@ export async function fetchAdminProducts() {
   return data.products || [];
 }
 
-/** Đổi trạng thái sản phẩm: 'active' (hiện) | 'hidden' (ẩn). */
+/** Đổi trạng thái sản phẩm: 'active' (hiện) | 'hidden' (ẩn) | 'trash'. */
 export async function updateProductStatusApi(id, status) {
   const data = await request(`/api/products/${id}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
   return data.product;
+}
+
+/** Bulk update status cho nhiều sản phẩm. */
+export async function bulkUpdateStatusApi(ids, status) {
+  const data = await request('/api/products/bulk', {
+    method: 'PATCH',
+    body: JSON.stringify({ ids, status }),
+  });
+  return data;
 }
 
 /** Lưu (tạo mới hoặc update) một sản phẩm. */

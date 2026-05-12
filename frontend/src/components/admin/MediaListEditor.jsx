@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import CloudinaryUploader from './CloudinaryUploader';
+import { CLOUDINARY_ENABLED } from '../../services/cloudinary';
 
 /**
  * Editor cho mảng URL (ảnh hoặc video).
  * - List: thumbnail + nút xoá.
  * - Input dưới cùng để thêm URL mới.
  * - Reorder bằng nút lên/xuống.
+ * - Cloudinary upload nếu đã cấu hình env.
  */
 export default function MediaListEditor({
   label,
@@ -106,6 +109,17 @@ export default function MediaListEditor({
           + Thêm
         </button>
       </div>
+
+      {/* Cloudinary upload — chỉ cho ảnh, ẩn nếu chưa config env */}
+      {type === 'image' && CLOUDINARY_ENABLED && (
+        <div className="mt-2">
+          <CloudinaryUploader
+            multiple
+            label="📤 Upload ảnh từ máy"
+            onUpload={(urls) => onChange([...(value || []), ...urls])}
+          />
+        </div>
+      )}
     </div>
   );
 }

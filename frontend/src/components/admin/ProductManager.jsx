@@ -5,6 +5,7 @@ import {
   fetchAdminProducts,
   updateProductStatusApi,
   deleteProductApi,
+  bulkUpdateStatusApi,
 } from '../../services/api';
 import { formatVND, formatDate } from '../../utils/format';
 import EditProductModal from './EditProductModal';
@@ -44,6 +45,8 @@ export default function ProductManager() {
   const [busyId, setBusyId] = useState(null);
   const [toast, setToast] = useState('');
   const [editing, setEditing] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -108,6 +111,42 @@ export default function ProductManager() {
   const handleSaved = (savedProduct) => {
     setList((arr) => arr.map((p) => (p.id === savedProduct.id ? savedProduct : p)));
     flashToast(`✓ Đã cập nhật "${savedProduct.title}"`);
+  };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const selectAllVisible = (visibleIds) => {
+    const allSelected = visibleIds.every((id) => selectedIds.has(id));
+    setSelectedIds((s) => {
+      const next = new Set(s);
+      if (allSelected) visibleIds.forEach((id) => next.delete(id));
+      else visibleIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const bulkAction = async (status, label) => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    if (!window.confirm(`${label} ${ids.length} sản phẩm đã chọn?`)) return;
+    setBulkBusy(true);
+    try {
+      await bulkUpdateStatusApi(ids, status);
+      flashToast(`✓ Đã ${label.toLowerCase()} ${ids.length} sản phẩm`);
+      clearSelection();
+      load();
+    } catch (err) {
+      alert(`Lỗi: ${err.message}`);
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const filtered = useMemo(() => {
@@ -272,18 +311,75 @@ export default function ProductManager() {
             : 'Không có sản phẩm nào khớp filter / từ khoá.'}
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {filtered.map((p) => (
-            <ProductRow
-              key={p.id}
-              product={p}
-              busy={busyId === p.id}
-              onToggleStatus={() => toggleStatus(p)}
-              onDelete={() => moveToTrash(p)}
-              onEdit={() => setEditing(p)}
-            />
-          ))}
-        </div>
+        <>
+          {/* Bulk action bar */}
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 shadow-card ring-1 ring-brand-ink-100">
+            <label className="flex items-center gap-2 text-xs font-semibold">
+              <input
+                type="checkbox"
+                checked={
+                  filtered.length > 0 && filtered.every((p) => selectedIds.has(p.id))
+                }
+                onChange={() => selectAllVisible(filtered.map((p) => p.id))}
+                className="h-4 w-4 accent-brand-orange-500"
+              />
+              <span>
+                Chọn tất cả ({filtered.length})
+                {selectedIds.size > 0 && (
+                  <span className="ml-1 text-brand-orange-600">
+                    · {selectedIds.size} đã chọn
+                  </span>
+                )}
+              </span>
+            </label>
+            {selectedIds.size > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => bulkAction('active', 'Hiện lại')}
+                  disabled={bulkBusy}
+                  className="rounded-full bg-green-100 px-3 py-1 text-[11px] font-semibold text-green-700 hover:bg-green-200 disabled:opacity-50"
+                >
+                  👁 Hiện lại
+                </button>
+                <button
+                  onClick={() => bulkAction('hidden', 'Ẩn')}
+                  disabled={bulkBusy}
+                  className="rounded-full bg-amber-100 px-3 py-1 text-[11px] font-semibold text-amber-800 hover:bg-amber-200 disabled:opacity-50"
+                >
+                  🙈 Ẩn
+                </button>
+                <button
+                  onClick={() => bulkAction('trash', 'Vào thùng rác')}
+                  disabled={bulkBusy}
+                  className="rounded-full bg-red-100 px-3 py-1 text-[11px] font-semibold text-red-700 hover:bg-red-200 disabled:opacity-50"
+                >
+                  🗑 Vào thùng rác
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="rounded-full bg-brand-ink-100 px-3 py-1 text-[11px] font-semibold"
+                >
+                  ✕ Bỏ chọn
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {filtered.map((p) => (
+              <ProductRow
+                key={p.id}
+                product={p}
+                busy={busyId === p.id}
+                selected={selectedIds.has(p.id)}
+                onSelectToggle={() => toggleSelect(p.id)}
+                onToggleStatus={() => toggleStatus(p)}
+                onDelete={() => moveToTrash(p)}
+                onEdit={() => setEditing(p)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       {/* Edit modal */}
@@ -296,15 +392,25 @@ export default function ProductManager() {
   );
 }
 
-function ProductRow({ product, busy, onToggleStatus, onDelete, onEdit }) {
+function ProductRow({ product, busy, selected, onSelectToggle, onToggleStatus, onDelete, onEdit }) {
   const isHidden = product.status === 'hidden';
-  const isSheet = product.source === 'sheet';
+  void product.source;
   return (
     <article
       className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 transition ${
-        isHidden ? 'ring-amber-200 opacity-75' : 'ring-brand-ink-100'
+        selected
+          ? 'ring-brand-orange-400 ring-2'
+          : isHidden
+          ? 'ring-amber-200 opacity-75'
+          : 'ring-brand-ink-100'
       }`}
     >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onSelectToggle}
+        className="mt-1 h-4 w-4 shrink-0 accent-brand-orange-500"
+      />
       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl">
         <img
           src={product.images?.[0] || 'https://placehold.co/200x200/f1f5f9/64748b?text=?'}

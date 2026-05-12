@@ -78,13 +78,19 @@ export function createStore({ filename, defaults = [] }) {
       return next;
     },
     async setStatus(id, status) {
-      if (!['active', 'hidden'].includes(status)) {
-        throw new Error('Status không hợp lệ.');
+      if (!['active', 'hidden', 'trash'].includes(status)) {
+        throw new Error('Status không hợp lệ. Chỉ active | hidden | trash.');
       }
       const all = await read();
       const idx = all.findIndex((it) => it.id === id);
       if (idx < 0) return null;
-      all[idx] = { ...all[idx], status, updatedAt: new Date().toISOString() };
+      const now = new Date().toISOString();
+      all[idx] = {
+        ...all[idx],
+        status,
+        updatedAt: now,
+        trashedAt: status === 'trash' ? now : null,
+      };
       await write(all);
       return all[idx];
     },
