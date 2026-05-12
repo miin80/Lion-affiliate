@@ -172,8 +172,9 @@ export default function GoogleSheetManager() {
       <div className="rounded-3xl bg-white p-5 shadow-card ring-1 ring-brand-ink-100 sm:p-6">
         <h3 className="text-base font-extrabold">📊 Google Sheet URL</h3>
         <p className="mt-1 text-xs text-brand-ink-500">
-          Dán URL Google Sheet — đường dẫn edit (...spreadsheets/d/...) hoặc CSV publish đều OK.
-          Hướng dẫn tạo Sheet tại file <code>GOOGLE_SHEET_SETUP.md</code> trong repo.
+          Dán đường dẫn Google Sheet — link edit (<code>...spreadsheets/d/...</code>) hoặc CSV publish đều được. Backend tự nhận diện.
+          <br />
+          💡 Cách dễ hơn: cài Apps Script trong Google Sheet (file <code>apps-script/Code.gs</code>) để có nút <strong>"🚀 Lion Affiliate → 🔄 Đồng bộ ngay"</strong> ngay trong Sheet — không cần vào tab này.
         </p>
 
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -386,9 +387,20 @@ export default function GoogleSheetManager() {
       {!csvUrl && (
         <div className="rounded-3xl bg-brand-orange-50 p-5 text-sm ring-1 ring-brand-orange-200">
           <div className="font-bold text-brand-orange-700">👉 Chưa có Google Sheet URL</div>
-          <p className="mt-1 text-brand-ink-700">
-            Tạo Sheet với header columns: <code className="text-[11px]">id, title, sourceUrl, affiliateUrl, category, price, oldPrice, description, image, gallery, video, rating, tags, isHot, isBestSeller, status</code>.
-            Hướng dẫn chi tiết tại <code>GOOGLE_SHEET_SETUP.md</code>.
+          <p className="mt-2 text-brand-ink-700">
+            <strong>Bước 1.</strong> Tạo Google Sheet mới, dòng đầu (header) là 16 cột:
+          </p>
+          <p className="mt-1 text-[12px] text-brand-ink-700">
+            <code className="rounded bg-white px-1.5 py-0.5">ID</code> · <code className="rounded bg-white px-1.5 py-0.5">Tên sản phẩm</code> · <code className="rounded bg-white px-1.5 py-0.5">Link gốc (Shopee/TikTok)</code> · <code className="rounded bg-white px-1.5 py-0.5">Link affiliate (nút Mua)</code> · <code className="rounded bg-white px-1.5 py-0.5">Danh mục</code> · <code className="rounded bg-white px-1.5 py-0.5">Giá (VND)</code> · <code className="rounded bg-white px-1.5 py-0.5">Giá gốc</code> · <code className="rounded bg-white px-1.5 py-0.5">Mô tả ngắn</code> · <code className="rounded bg-white px-1.5 py-0.5">Ảnh chính</code> · <code className="rounded bg-white px-1.5 py-0.5">Gallery (ảnh phụ)</code> · <code className="rounded bg-white px-1.5 py-0.5">Video</code> · <code className="rounded bg-white px-1.5 py-0.5">Rating</code> · <code className="rounded bg-white px-1.5 py-0.5">Tags</code> · <code className="rounded bg-white px-1.5 py-0.5">Hot</code> · <code className="rounded bg-white px-1.5 py-0.5">Best Seller</code> · <code className="rounded bg-white px-1.5 py-0.5">Trạng thái</code>
+          </p>
+          <p className="mt-2 text-brand-ink-700">
+            <strong>Bước 2.</strong> Cài Apps Script (file <code className="rounded bg-white px-1.5 py-0.5">apps-script/Code.gs</code>) trong Sheet → Extensions → Apps Script. Bấm menu <strong>"🚀 Lion Affiliate → 📋 Tạo header cột"</strong> để tự fill 16 cột header.
+          </p>
+          <p className="mt-2 text-brand-ink-700">
+            <strong>Bước 3.</strong> Điền sản phẩm → bấm <strong>"🔄 Đồng bộ ngay"</strong> trong menu Sheet (cách nhanh nhất), hoặc paste URL Sheet ở ô trên rồi bấm <strong>"🔄 Đồng bộ từ Sheet"</strong> tại đây.
+          </p>
+          <p className="mt-2 text-[11px] text-brand-ink-500">
+            Hướng dẫn chi tiết tại file <code>GOOGLE_SHEET_SETUP.md</code> và <code>apps-script/README.md</code> trong repo GitHub.
           </p>
         </div>
       )}
