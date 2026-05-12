@@ -53,7 +53,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 // Đảm bảo preflight cho mọi route
 app.options('*', cors(corsOptions));
-app.use(express.json({ limit: '2mb' }));
+// 10mb để cho phép upload ảnh base64 inline (avatar, cover, thumbnail)
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'affiliate-backend', time: new Date().toISOString() });

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { fetchSiteSettings, saveSiteSettingsApi } from '../../services/api';
 import { DEFAULT_SITE_SETTINGS } from '../../hooks/useSiteSettings';
+import AvatarUploader from './AvatarUploader';
 
 /**
  * Form chỉnh site settings: profile, socials, buttons, hero.
@@ -81,23 +82,25 @@ export default function SettingsManager() {
 
       {/* PROFILE */}
       <Section title="👤 Profile header" desc="Avatar, tên, mô tả, thống kê">
-        <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
+        <div className="grid gap-4 sm:grid-cols-[140px_1fr]">
           <div>
-            <label className="text-sm font-bold">Avatar preview</label>
-            <img
-              src={settings.profile?.avatar || 'https://placehold.co/200x200/f1f5f9/64748b?text=?'}
-              alt="avatar"
-              className="mt-2 h-24 w-24 rounded-full object-cover ring-2 ring-white shadow-soft"
-              onError={(e) => {
-                e.currentTarget.src = 'https://placehold.co/200x200/fee2e2/991b1b?text=URL+lỗi';
-              }}
+            <label className="text-sm font-bold">Avatar</label>
+            <p className="mb-2 text-[11px] text-brand-ink-500">Click ảnh để đổi</p>
+            <AvatarUploader
+              value={settings.profile?.avatar}
+              onChange={(v) => update('profile.avatar', v)}
+              size={96}
             />
           </div>
           <div className="grid gap-3">
-            <Field label="Avatar URL">
+            <Field label="Avatar URL" hint="Hoặc paste URL ảnh từ internet (Imgur, FB CDN...)">
               <input
                 className="input-base"
-                value={settings.profile?.avatar || ''}
+                value={
+                  typeof settings.profile?.avatar === 'string' && settings.profile.avatar.startsWith('data:')
+                    ? '(ảnh đã upload — đè bằng URL nếu muốn)'
+                    : settings.profile?.avatar || ''
+                }
                 onChange={(e) => update('profile.avatar', e.target.value)}
                 placeholder="https://..."
               />
