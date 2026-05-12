@@ -12,7 +12,11 @@ const MENU = [
   { key: 'blogs',       icon: '📝', label: 'Blog' },
   { key: 'sheet',       icon: '📊', label: 'Google Sheet' },
   { key: 'settings',    icon: '⚙️', label: 'Cài đặt website' },
-  { key: 'trash',       icon: '🗑',  label: 'Thùng rác' },
+  { divider: true, label: 'Thùng rác' },
+  { key: 'trash',       icon: '🗑',  label: 'SP đã xoá' },
+  { key: 'video-trash', icon: '🗑',  label: 'Video đã xoá' },
+  { key: 'coll-trash',  icon: '🗑',  label: 'BST đã xoá' },
+  { key: 'blog-trash',  icon: '🗑',  label: 'Blog đã xoá' },
 ];
 
 /**
@@ -71,7 +75,17 @@ export default function AdminLayout({ activeTab, onTabChange, children }) {
 
         {/* Menu */}
         <nav className="p-3">
-          {MENU.map((item) => {
+          {MENU.map((item, i) => {
+            if (item.divider) {
+              return (
+                <div
+                  key={`div-${i}`}
+                  className="mt-3 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-brand-ink-400"
+                >
+                  ─ {item.label} ─
+                </div>
+              );
+            }
             const isActive = activeTab === item.key;
             return (
               <button

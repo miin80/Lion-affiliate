@@ -22,7 +22,7 @@ export default function BlogsManager() {
         blogsApi.listAdmin(),
         fetchAdminProducts().catch(() => []),
       ]);
-      setItems(bs);
+      setItems(bs.filter((b) => b.status !== 'trash'));
       setProducts(ps);
     } catch (err) { flash('error', err.message); }
     finally { setLoading(false); }
@@ -47,10 +47,13 @@ export default function BlogsManager() {
     try { await blogsApi.setStatus(item.id, item.status === 'active' ? 'hidden' : 'active'); load(); }
     catch (err) { flash('error', err.message); }
   };
-  const remove = async (item) => {
-    if (!window.confirm(`Xoá bài viết "${item.title}"?`)) return;
-    try { await blogsApi.remove(item.id); load(); }
-    catch (err) { flash('error', err.message); }
+  const moveToTrash = async (item) => {
+    if (!window.confirm(`Đưa bài "${item.title}" vào thùng rác?`)) return;
+    try {
+      await blogsApi.setStatus(item.id, 'trash');
+      load();
+      flash('success', `🗑 Đã đưa "${item.title}" vào thùng rác`);
+    } catch (err) { flash('error', err.message); }
   };
 
   if (loading) return <div className="rounded-3xl bg-brand-ink-50 p-10 text-center text-sm">Đang tải...</div>;
@@ -160,7 +163,7 @@ export default function BlogsManager() {
                 <button onClick={() => toggleStatus(b)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${b.status === 'hidden' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
                   {b.status === 'hidden' ? '👁' : '🙈'}
                 </button>
-                <button onClick={() => remove(b)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700">🗑</button>
+                <button onClick={() => moveToTrash(b)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700" title="Vào thùng rác">🗑</button>
               </div>
             </div>
           </div>

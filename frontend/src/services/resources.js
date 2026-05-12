@@ -39,3 +39,16 @@ export const videosApi = createResourceApi('videos');
 export const categoriesApi = createResourceApi('categories');
 export const collectionsApi = createResourceApi('collections');
 export const blogsApi = createResourceApi('blogs');
+
+// Override categoriesApi.list để dùng endpoint auto-filter "active + có sp thuộc cat".
+categoriesApi.list = () => req('/api/categories/active-with-products').then((d) => d?.items || []);
+
+// Generic reorder method cho tất cả resources.
+[videosApi, categoriesApi, collectionsApi, blogsApi].forEach((api, i) => {
+  const base = ['videos', 'categories', 'collections', 'blogs'][i];
+  api.reorder = (items) =>
+    req(`/api/${base}/reorder`, {
+      method: 'PATCH',
+      body: JSON.stringify(items),
+    }).then((d) => d?.items || []);
+});

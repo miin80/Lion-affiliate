@@ -116,7 +116,16 @@ app.post('/api/google-sheet/import', requireAuth, importSheetRoute);
 function mountResource(base, store) {
   const r = createRoutes(store);
   app.get(`/api/${base}`, r.list);
+  // /admin và /reorder phải đứng TRƯỚC /:id để Express match đúng
   app.get(`/api/${base}/admin`, requireAuth, r.listAdmin);
+  app.patch(`/api/${base}/reorder`, requireAuth, async (req, res) => {
+    try {
+      const items = await store.reorder(req.body || []);
+      res.json({ items });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  });
   app.get(`/api/${base}/:id`, r.get);
   app.post(`/api/${base}`, requireAuth, r.save);
   app.put(`/api/${base}/:id`, requireAuth, r.update);
@@ -127,6 +136,28 @@ mountResource('videos', videosStore);
 mountResource('categories', categoriesStore);
 mountResource('collections', collectionsStore);
 mountResource('blogs', blogsStore);
+
+// Category public — chỉ trả category có ít nhất 1 sản phẩm active thuộc cat đó.
+// Bonus: luôn giữ 'all' (Tất cả) và 'deal' (Deal hot) là 2 category đặc biệt.
+import { listActiveProducts } from './store/products.js';
+app.get('/api/categories/active-with-products', async (_req, res) => {
+  try {
+    const [cats, products] = await Promise.all([
+      categoriesStore.listActive(),
+      listActiveProducts(),
+    ]);
+    const usedSlugs = new Set(products.map((p) => p.category).filter(Boolean));
+    const filtered = cats.filter((c) => {
+      // Các category đặc biệt luôn giữ
+      if (c.slug === 'all' || c.slug === 'deal') return true;
+      // Còn lại chỉ giữ nếu có ít nhất 1 sản phẩm thuộc category đó
+      return usedSlugs.has(c.slug);
+    });
+    res.json({ items: filtered });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.use((err, _req, res, _next) => {
   console.error('UNHANDLED:', err);

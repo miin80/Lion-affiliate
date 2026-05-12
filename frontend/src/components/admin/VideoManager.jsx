@@ -29,7 +29,8 @@ export default function VideoManager() {
         videosApi.listAdmin(),
         fetchAdminProducts().catch(() => []),
       ]);
-      setItems(vs.sort((a, b) => (a.order ?? 999) - (b.order ?? 999)));
+      // Filter out trash — chỉ hiện trong VideoTrash tab
+      setItems(vs.filter((v) => v.status !== 'trash').sort((a, b) => (a.order ?? 999) - (b.order ?? 999)));
       setProducts(ps);
     } catch (err) {
       flash('error', err.message);
@@ -75,11 +76,12 @@ export default function VideoManager() {
     }
   };
 
-  const remove = async (item) => {
-    if (!window.confirm(`Xoá video "${item.title}"?`)) return;
+  const moveToTrash = async (item) => {
+    if (!window.confirm(`Đưa video "${item.title}" vào thùng rác?\n\nCó thể khôi phục từ tab "🗑 Thùng rác Video".`)) return;
     try {
-      await videosApi.remove(item.id);
+      await videosApi.setStatus(item.id, 'trash');
       load();
+      flash('success', `🗑 Đã đưa "${item.title}" vào thùng rác`);
     } catch (err) {
       flash('error', err.message);
     }
@@ -213,7 +215,7 @@ export default function VideoManager() {
                   <button onClick={() => toggleStatus(v)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${v.status === 'hidden' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
                     {v.status === 'hidden' ? '👁 Hiện' : '🙈 Ẩn'}
                   </button>
-                  <button onClick={() => remove(v)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700">🗑 Xoá</button>
+                  <button onClick={() => moveToTrash(v)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700" title="Đưa vào thùng rác (có thể khôi phục)">🗑 Thùng rác</button>
                 </div>
               </div>
             </article>

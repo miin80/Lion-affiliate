@@ -100,12 +100,21 @@ export function createStore({ filename, defaults = [] }) {
       await write(next);
       return all.length !== next.length;
     },
-    /** Reorder bằng mảng id theo thứ tự mới. */
-    async reorder(ids) {
+    /**
+     * Reorder. Hỗ trợ 2 dạng input:
+     *  - Mảng id theo thứ tự mới: ['id1', 'id2', ...]
+     *  - Mảng object: [{id, order}, ...]
+     */
+    async reorder(input) {
+      if (!Array.isArray(input) || !input.length) return [];
       const all = await read();
       const byId = Object.fromEntries(all.map((it) => [it.id, it]));
-      ids.forEach((id, i) => {
-        if (byId[id]) byId[id].order = i;
+      input.forEach((entry, i) => {
+        if (typeof entry === 'string') {
+          if (byId[entry]) byId[entry].order = i;
+        } else if (entry && entry.id) {
+          if (byId[entry.id]) byId[entry.id].order = entry.order ?? i;
+        }
       });
       await write(Object.values(byId));
       return Object.values(byId);

@@ -15,6 +15,9 @@ import GoogleSheetManager from '../components/admin/GoogleSheetManager';
 import AdminLayout from '../components/admin/AdminLayout';
 import Dashboard from '../components/admin/Dashboard';
 import TrashManager from '../components/admin/TrashManager';
+import VideoTrash from '../components/admin/VideoTrash';
+import CollectionTrash from '../components/admin/CollectionTrash';
+import BlogTrash from '../components/admin/BlogTrash';
 import { detectPlatform } from '../config/affiliate';
 import { importProductApi, saveProductApi } from '../services/api';
 import { logout, getUser } from '../services/auth';
@@ -174,6 +177,9 @@ export default function Admin() {
         {tab === 'sheet' && <GoogleSheetManager />}
         {tab === 'settings' && <SettingsManager />}
         {tab === 'trash' && <TrashManager />}
+        {tab === 'video-trash' && <VideoTrash />}
+        {tab === 'coll-trash' && <CollectionTrash />}
+        {tab === 'blog-trash' && <BlogTrash />}
 
         {tab === 'import' && (
         <>

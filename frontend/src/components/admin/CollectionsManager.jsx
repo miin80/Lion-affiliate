@@ -21,7 +21,7 @@ export default function CollectionsManager() {
         collectionsApi.listAdmin(),
         fetchAdminProducts().catch(() => []),
       ]);
-      setItems(cs.sort((a, b) => (a.order ?? 999) - (b.order ?? 999)));
+      setItems(cs.filter((c) => c.status !== 'trash').sort((a, b) => (a.order ?? 999) - (b.order ?? 999)));
       setProducts(ps);
     } catch (err) { flash('error', err.message); }
     finally { setLoading(false); }
@@ -46,10 +46,13 @@ export default function CollectionsManager() {
     try { await collectionsApi.setStatus(item.id, item.status === 'active' ? 'hidden' : 'active'); load(); }
     catch (err) { flash('error', err.message); }
   };
-  const remove = async (item) => {
-    if (!window.confirm(`Xoá bộ sưu tập "${item.title}"?`)) return;
-    try { await collectionsApi.remove(item.id); load(); }
-    catch (err) { flash('error', err.message); }
+  const moveToTrash = async (item) => {
+    if (!window.confirm(`Đưa "${item.title}" vào thùng rác?\n\nCó thể khôi phục từ tab "🗑 Thùng rác BST".`)) return;
+    try {
+      await collectionsApi.setStatus(item.id, 'trash');
+      load();
+      flash('success', `🗑 Đã đưa "${item.title}" vào thùng rác`);
+    } catch (err) { flash('error', err.message); }
   };
 
   if (loading) return <div className="rounded-3xl bg-brand-ink-50 p-10 text-center text-sm">Đang tải...</div>;
@@ -147,7 +150,7 @@ export default function CollectionsManager() {
                 <button onClick={() => toggleStatus(c)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${c.status === 'hidden' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
                   {c.status === 'hidden' ? '👁 Hiện' : '🙈 Ẩn'}
                 </button>
-                <button onClick={() => remove(c)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700">🗑</button>
+                <button onClick={() => moveToTrash(c)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700" title="Vào thùng rác">🗑</button>
               </div>
             </div>
           </div>
