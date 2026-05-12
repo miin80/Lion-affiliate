@@ -74,16 +74,18 @@ app.get('/api/auth/me', meRoute);
 // ============ PUBLIC ============
 // Khách truy cập web đọc data — không cần token.
 app.get('/api/products', listRoute);
-app.get('/api/products/:id', getRoute);
 app.get('/api/site-settings', getSettingsRoute);
 
 // ============ ADMIN (yêu cầu token) ============
 app.post('/api/scrape', requireAuth, scrapeRoute);
 app.post('/api/import-product', requireAuth, importProductRoute);
 
+// ⚠️ Quan trọng: routes có path cụ thể (/admin, /bulk) phải đăng ký TRƯỚC
+//    routes có param (/:id), nếu không Express sẽ match :id="admin" → 404.
 app.get('/api/products/admin', requireAuth, listAdminRoute);
-app.post('/api/products', requireAuth, saveRoute);
 app.post('/api/products/bulk', requireAuth, bulkSaveRoute);
+app.post('/api/products', requireAuth, saveRoute);
+app.get('/api/products/:id', getRoute);   // public detail by id (sau /admin)
 app.put('/api/products/:id', requireAuth, (req, res) => {
   req.body.id = req.params.id;
   return saveRoute(req, res);
