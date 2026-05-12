@@ -2,6 +2,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { DEFAULT_AVATAR_DATA_URL } from './defaultAvatar.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
@@ -13,11 +14,11 @@ let writeQueue = Promise.resolve();
 // Default mặc định nếu file chưa tồn tại — match data hiện tại của site.
 export const DEFAULT_SETTINGS = {
   profile: {
-    name: 'Mira Reviews',
-    tagline: 'Review chuyên sâu — Deal tốt nhất',
+    name: 'Minh Quang Reviews',
+    tagline: 'Đồ tốt mình dùng mỗi ngày',
     shortBio:
       'Reviewer đời sống · Mỗi tuần 1 sản phẩm đáng mua. Tap ⬇️ để xem deal tốt nhất.',
-    avatar: 'https://i.pravatar.cc/300?img=47',
+    avatar: DEFAULT_AVATAR_DATA_URL,
     stats: {
       followers: '128K',
       reviewed: '320+',
@@ -25,20 +26,20 @@ export const DEFAULT_SETTINGS = {
     },
   },
   socials: {
-    tiktok: 'https://tiktok.com/@mira_reviews',
-    facebook: 'https://facebook.com/mira.reviews',
-    instagram: 'https://instagram.com/mira.reviews',
+    tiktok: '',
+    facebook: 'https://www.facebook.com/Lion9826/',
+    instagram: '',
     youtube: '',
-    shopee: 'https://shopee.vn/mira_reviews',
+    shopee: '',
   },
   buttons: {
     follow: {
       text: '➕ Theo dõi mình',
-      url: 'https://tiktok.com/@mira_reviews',
+      url: 'https://www.facebook.com/Lion9826/',
     },
     dealHot: {
       text: '🔥 Xem deal HOT hôm nay',
-      url: '', // rỗng = dùng hành vi mặc định (scroll xuống product grid filter Deal)
+      url: '',
     },
     videoReview: {
       text: '🎬 Xem video review',
@@ -54,7 +55,7 @@ export const DEFAULT_SETTINGS = {
   },
   disclosure:
     'Một số liên kết trên website là liên kết tiếp thị. Khi bạn mua hàng qua các liên kết này, mình có thể nhận được một khoản hoa hồng nhỏ — bạn KHÔNG phải trả thêm bất kỳ chi phí nào.',
-  email: 'contact@mira-reviews.example.com',
+  email: '',
   // Bật/tắt section hiển thị trên trang chủ
   sections: {
     hero: true,
@@ -80,7 +81,20 @@ export async function readSettings() {
   await ensureFile();
   const txt = await fs.readFile(FILE, 'utf8');
   try {
-    memCache = { ...DEFAULT_SETTINGS, ...JSON.parse(txt) };
+    const stored = JSON.parse(txt);
+    // Nếu data đã lưu KHÔNG có brand mới (Minh Quang) → file là legacy "Mira" data.
+    // Reset về DEFAULT_SETTINGS để pickup brand mới.
+    const isLegacy =
+      stored?.profile?.name === 'Mira Reviews' ||
+      (stored?.email || '').includes('mira-reviews') ||
+      (stored?.profile?.tagline || '').includes('Review chuyên sâu');
+    if (isLegacy) {
+      console.log('[settings] Legacy Mira data detected — resetting to defaults');
+      memCache = { ...DEFAULT_SETTINGS };
+      await fs.writeFile(FILE, JSON.stringify(memCache, null, 2), 'utf8');
+    } else {
+      memCache = { ...DEFAULT_SETTINGS, ...stored };
+    }
   } catch {
     memCache = { ...DEFAULT_SETTINGS };
   }

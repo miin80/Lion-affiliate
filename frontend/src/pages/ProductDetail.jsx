@@ -100,7 +100,7 @@ export default function ProductDetail() {
           <div className="flex flex-wrap items-center gap-2">
             <PlatformBadge platform={product.platform} />
             {product.badges?.includes('reviewed') && (
-              <span className="badge bg-brand-ink-100 text-brand-ink-800">✓ Mira đã review</span>
+              <span className="badge bg-brand-ink-100 text-brand-ink-800">✓ Minh Quang đã review</span>
             )}
             {product.badges?.includes('hot') && (
               <span className="badge bg-brand-orange-500 text-white">🔥 HOT</span>

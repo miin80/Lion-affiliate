@@ -14,6 +14,12 @@ import {
 import { getSettingsRoute, putSettingsRoute } from './routes/settings.js';
 import { loginRoute, meRoute } from './routes/auth.js';
 import { requireAuth } from './middleware/auth.js';
+import {
+  getSheetSettingsRoute,
+  putSheetSettingsRoute,
+  previewSheetRoute,
+  importSheetRoute,
+} from './routes/googleSheet.js';
 import { createRoutes } from './store/genericStore.js';
 import {
   videosStore,
@@ -84,6 +90,12 @@ app.patch('/api/products/:id/status', requireAuth, statusRoute);
 app.delete('/api/products/:id', requireAuth, deleteRoute);
 
 app.put('/api/site-settings', requireAuth, putSettingsRoute);
+
+// ============ GOOGLE SHEET IMPORT (admin only) ============
+app.get('/api/google-sheet/settings', requireAuth, getSheetSettingsRoute);
+app.put('/api/google-sheet/settings', requireAuth, putSheetSettingsRoute);
+app.post('/api/google-sheet/preview', requireAuth, previewSheetRoute);
+app.post('/api/google-sheet/import', requireAuth, importSheetRoute);
 
 // ============ GENERIC CMS RESOURCES ============
 // Mỗi resource có: GET public (active only), GET /admin, GET /:id,

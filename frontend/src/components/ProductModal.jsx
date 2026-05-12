@@ -110,7 +110,7 @@ export default function ProductModal({ product, onClose }) {
                   <div className="flex flex-wrap gap-1.5">
                     {product.badges?.includes('reviewed') && (
                       <span className="badge bg-brand-ink-100 text-brand-ink-800">
-                        ✓ Mira đã review
+                        ✓ Minh Quang đã review
                       </span>
                     )}
                     {product.badges?.includes('bestseller') && (

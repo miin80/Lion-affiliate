@@ -38,7 +38,7 @@ export const DEFAULT_SITE_SETTINGS = {
   },
 };
 
-const CACHE_KEY = 'lion_affiliate_site_settings_v1';
+const CACHE_KEY = 'lion_affiliate_site_settings_v2';
 
 function readCache() {
   try {

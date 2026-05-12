@@ -7,7 +7,7 @@ export const VIDEOS = [
     thumb: 'https://picsum.photos/seed/v-airfryer/720/1280',
     views: '128K',
     duration: '0:48',
-    videoUrl: 'https://www.tiktok.com/@mira_reviews/video/123',
+    videoUrl: 'https://www.tiktok.com/@minh_quang_reviews/video/123',
     productSlug: 'noi-chien-khong-dau-8l-smart',
   },
   {
@@ -16,7 +16,7 @@ export const VIDEOS = [
     thumb: 'https://picsum.photos/seed/v-lamp/720/1280',
     views: '94K',
     duration: '0:33',
-    videoUrl: 'https://www.tiktok.com/@mira_reviews/video/124',
+    videoUrl: 'https://www.tiktok.com/@minh_quang_reviews/video/124',
     productSlug: 'den-ngu-cam-ung-3-mau',
   },
   {
@@ -25,7 +25,7 @@ export const VIDEOS = [
     thumb: 'https://picsum.photos/seed/v-sunscreen/720/1280',
     views: '210K',
     duration: '1:02',
-    videoUrl: 'https://www.tiktok.com/@mira_reviews/video/125',
+    videoUrl: 'https://www.tiktok.com/@minh_quang_reviews/video/125',
     productSlug: 'kem-chong-nang-spf50',
   },
   {
@@ -34,7 +34,7 @@ export const VIDEOS = [
     thumb: 'https://picsum.photos/seed/v-blender/720/1280',
     views: '76K',
     duration: '0:42',
-    videoUrl: 'https://www.tiktok.com/@mira_reviews/video/126',
+    videoUrl: 'https://www.tiktok.com/@minh_quang_reviews/video/126',
     productSlug: 'may-xay-mini-cam-tay',
   },
   {
@@ -43,7 +43,7 @@ export const VIDEOS = [
     thumb: 'https://picsum.photos/seed/v-headphone/720/1280',
     views: '152K',
     duration: '1:15',
-    videoUrl: 'https://www.tiktok.com/@mira_reviews/video/127',
+    videoUrl: 'https://www.tiktok.com/@minh_quang_reviews/video/127',
     productSlug: 'tai-nghe-bluetooth-anc-pro',
   },
   {
@@ -52,7 +52,7 @@ export const VIDEOS = [
     thumb: 'https://picsum.photos/seed/v-snack/720/1280',
     views: '88K',
     duration: '0:55',
-    videoUrl: 'https://www.tiktok.com/@mira_reviews/video/128',
+    videoUrl: 'https://www.tiktok.com/@minh_quang_reviews/video/128',
     productSlug: 'do-an-vat-noi-dia-tong-hop',
   },
 ];

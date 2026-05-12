@@ -11,6 +11,7 @@ import VideoManager from '../components/admin/VideoManager';
 import CategoriesManager from '../components/admin/CategoriesManager';
 import CollectionsManager from '../components/admin/CollectionsManager';
 import BlogsManager from '../components/admin/BlogsManager';
+import GoogleSheetManager from '../components/admin/GoogleSheetManager';
 import { detectPlatform } from '../config/affiliate';
 import { importProductApi, saveProductApi } from '../services/api';
 import { logout, getUser } from '../services/auth';
@@ -191,6 +192,7 @@ export default function Admin() {
             <TabButton active={tab === 'collections'} onClick={() => setTab('collections')}>📚 Bộ sưu tập</TabButton>
             <TabButton active={tab === 'categories'} onClick={() => setTab('categories')}>🏷 Danh mục</TabButton>
             <TabButton active={tab === 'blogs'} onClick={() => setTab('blogs')}>📝 Blog</TabButton>
+            <TabButton active={tab === 'sheet'} onClick={() => setTab('sheet')}>📊 Google Sheet</TabButton>
             <TabButton active={tab === 'settings'} onClick={() => setTab('settings')}>⚙️ Cài đặt</TabButton>
           </div>
         </div>
@@ -200,6 +202,7 @@ export default function Admin() {
         {tab === 'collections' && <div className="mt-6"><CollectionsManager /></div>}
         {tab === 'categories' && <div className="mt-6"><CategoriesManager /></div>}
         {tab === 'blogs' && <div className="mt-6"><BlogsManager /></div>}
+        {tab === 'sheet' && <div className="mt-6"><GoogleSheetManager /></div>}
         {tab === 'settings' && <div className="mt-6"><SettingsManager /></div>}
 
         {tab === 'import' && (

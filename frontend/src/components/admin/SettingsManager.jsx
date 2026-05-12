@@ -110,7 +110,7 @@ export default function SettingsManager() {
                 className="input-base"
                 value={settings.profile?.name || ''}
                 onChange={(e) => update('profile.name', e.target.value)}
-                placeholder="Mira Reviews"
+                placeholder="Minh Quang Reviews"
               />
             </Field>
             <Field label="Tagline (footer)">
