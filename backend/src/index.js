@@ -26,7 +26,13 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 
-app.use(cors({ origin: CORS_ORIGIN === '*' ? true : CORS_ORIGIN.split(',') }));
+// Strip trailing slash + whitespace để khớp với Origin header trình duyệt gửi.
+const allowedOrigins =
+  CORS_ORIGIN === '*'
+    ? true
+    : CORS_ORIGIN.split(',').map((s) => s.trim().replace(/\/+$/, ''));
+
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/health', (_req, res) => {
