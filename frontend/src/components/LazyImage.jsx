@@ -51,7 +51,7 @@ export default function LazyImage({
         <img
           loading={eager ? 'eager' : 'lazy'}
           decoding="async"
-          src={error ? fallback : src}
+          src={!src || error ? fallback : src}
           alt={alt}
           data-loaded={loaded}
           onLoad={() => setLoaded(true)}

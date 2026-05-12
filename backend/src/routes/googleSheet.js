@@ -74,9 +74,11 @@ export async function importSheetRoute(req, res) {
     const { rows } = await fetchAndPreview(csvUrl);
     const selected = Array.isArray(req.body?.selectedIds) ? req.body.selectedIds : null;
 
+    // Import TẤT CẢ rows hợp lệ (cả active + hidden) — Sheet là source of truth cho status.
+    // Sản phẩm trong Sheet status=hidden → backend lưu với status=hidden (ẩn khỏi web).
+    // Sản phẩm Sheet status=active → backend lưu với status=active (hiện trên web).
     const toImport = rows.filter((r) => {
       if (r.errors.length) return false;
-      if (r.originalStatus !== 'active') return false;
       if (selected && !selected.includes(r.rowIndex)) return false;
       return true;
     });
@@ -86,7 +88,7 @@ export async function importSheetRoute(req, res) {
 
     for (const r of toImport) {
       try {
-        const saved = await saveProduct(r.product);
+        const saved = await saveProduct({ ...r.product, source: 'sheet' });
         importedItems.push({ id: saved.id, title: saved.title, rowIndex: r.rowIndex });
       } catch (err) {
         errorItems.push({ rowIndex: r.rowIndex, error: err.message, title: r.product.title });

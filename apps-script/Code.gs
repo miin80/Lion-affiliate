@@ -291,11 +291,10 @@ function readSheetProducts_(onlySelected) {
     };
     const rowNum = startRow + i;
 
+    // Sync CẢ active + hidden — Sheet là source of truth cho status.
+    // Chỉ skip nếu thiếu title hoặc status không hợp lệ.
     const status = (get('status') || 'active').toLowerCase();
-    if (status !== 'active') {
-      skipped.push({ rowNum: rowNum, reason: 'status != active' });
-      return;
-    }
+    const finalStatus = ['active', 'hidden'].indexOf(status) >= 0 ? status : 'active';
 
     const title = get('title');
     if (!title) {
@@ -339,7 +338,8 @@ function readSheetProducts_(onlySelected) {
       isHot: parseBool_(get('isHot')),
       isBestSeller: parseBool_(get('isBestSeller')),
       platform: detectPlatform_(sourceUrl || affiliateUrl),
-      status: 'active',
+      status: finalStatus,
+      source: 'sheet',
       _rowNum: rowNum,
     });
   });
@@ -368,10 +368,14 @@ function doSync_(onlySelected) {
     return;
   }
 
+  const activeCount = result.products.filter(function (p) { return p.status === 'active'; }).length;
+  const hiddenCount = result.products.length - activeCount;
   const confirm = ui.alert(
     'Xác nhận đồng bộ',
-    'Sẽ push ' + result.products.length + ' sản phẩm lên website.\n' +
-      (result.skipped.length ? 'Bỏ qua ' + result.skipped.length + ' dòng.\n' : '') +
+    'Sẽ push ' + result.products.length + ' sản phẩm lên website:\n' +
+      '  • Active (hiện): ' + activeCount + '\n' +
+      '  • Hidden (ẩn): ' + hiddenCount + '\n' +
+      (result.skipped.length ? '\nBỏ qua ' + result.skipped.length + ' dòng thiếu Tên sản phẩm.\n' : '') +
       '\nTiếp tục?',
     ui.ButtonSet.YES_NO
   );
@@ -428,8 +432,12 @@ function validateRows() {
   }
   const valid = result.products.length;
   const skipped = result.skipped.length;
-  let msg = '✅ Hợp lệ (active + có title): ' + valid + ' dòng\n';
-  msg += '⏭ Skip: ' + skipped + ' dòng\n';
+  const activeCount = result.products.filter(function (p) { return p.status === 'active'; }).length;
+  const hiddenCount = valid - activeCount;
+  let msg = '✅ Hợp lệ: ' + valid + ' dòng\n';
+  msg += '  • Active: ' + activeCount + '\n';
+  msg += '  • Hidden: ' + hiddenCount + '\n';
+  msg += '⏭ Skip (thiếu title): ' + skipped + ' dòng\n';
   if (skipped > 0) {
     msg += '\nChi tiết:\n' + result.skipped.slice(0, 10).map(function (s) {
       return 'Dòng ' + s.rowNum + ': ' + s.reason;

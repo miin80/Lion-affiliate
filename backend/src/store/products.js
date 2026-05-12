@@ -94,6 +94,8 @@ export async function saveProduct(product) {
     id,
     slug: idx >= 0 ? all[idx].slug : slug,
     status: product.status || (idx >= 0 ? all[idx].status : 'active') || 'active',
+    // source: 'manual' | 'sheet'. Khi update, GIỮ source ban đầu (không bị overwrite).
+    source: idx >= 0 ? all[idx].source || 'manual' : (product.source || 'manual'),
     updatedAt: now,
     createdAt: idx >= 0 ? all[idx].createdAt : now,
   };

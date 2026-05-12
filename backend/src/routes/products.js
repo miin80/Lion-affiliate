@@ -58,6 +58,7 @@ export async function bulkSaveRoute(req, res) {
         if (!Array.isArray(p.images)) p.images = p.image ? [p.image] : [];
         if (!Array.isArray(p.tags)) p.tags = [];
         if (!Array.isArray(p.badges)) p.badges = ['reviewed'];
+        if (!p.source) p.source = 'sheet';
         const saved = await saveProduct(p);
         imported.push({ id: saved.id, title: saved.title });
       } catch (err) {
