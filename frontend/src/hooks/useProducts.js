@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchProducts } from '../services/api';
 import { PRODUCTS as MOCK } from '../data/products';
 
-const CACHE_KEY = 'lion_affiliate_products_v1';
+const CACHE_KEY = 'lion_affiliate_products_v2';
 
 function readCache() {
   try {
@@ -50,10 +50,12 @@ export function useProducts() {
     reload();
   }, [reload]);
 
+  // Logic hiển thị:
+  //   - apiProducts có data → CHỈ hiển thị sản phẩm thật (mock tự ẩn đi)
+  //   - apiProducts rỗng (chưa có sản phẩm nào / backend down) → fallback mock để demo
+  // → Khi user thêm sản phẩm thật đầu tiên, 12 demo products biến mất ngay.
   const mockWithFlag = MOCK.map((p) => ({ status: 'active', ...p, __isMock: true }));
-  const merged = apiProducts.length > 0
-    ? [...apiProducts, ...mockWithFlag]
-    : mockWithFlag;
+  const merged = apiProducts.length > 0 ? apiProducts : mockWithFlag;
 
   const products = merged.filter((p) => (p.status || 'active') === 'active');
 
