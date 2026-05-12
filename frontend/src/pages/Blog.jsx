@@ -7,7 +7,7 @@ import { useResource } from '../hooks/useResource';
 import { blogsApi } from '../services/resources';
 
 export default function Blog() {
-  const { items } = useResource(blogsApi, MOCK_BLOG);
+  const { items } = useResource(blogsApi, MOCK_BLOG, 'lion_affiliate_blogs_v1');
   return (
     <>
       <Seo title="Blog Review" description="Top sản phẩm nên mua, review chi tiết, so sánh." />

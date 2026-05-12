@@ -7,7 +7,7 @@ import { collectionsApi } from '../services/resources';
 import { ArrowRight } from './icons';
 
 export default function Collections() {
-  const { items } = useResource(collectionsApi, MOCK_COLLECTIONS);
+  const { items } = useResource(collectionsApi, MOCK_COLLECTIONS, 'lion_affiliate_collections_v1');
   if (!items.length) return null;
   return (
     <section className="container-page mt-10 sm:mt-14">

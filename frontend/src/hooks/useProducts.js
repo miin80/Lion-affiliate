@@ -2,18 +2,32 @@ import { useCallback, useEffect, useState } from 'react';
 import { fetchProducts } from '../services/api';
 import { PRODUCTS as MOCK } from '../data/products';
 
+const CACHE_KEY = 'lion_affiliate_products_v1';
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : null;
+  } catch {
+    return null;
+  }
+}
+function writeCache(arr) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(arr));
+  } catch {}
+}
+
 /**
- * Lấy sản phẩm từ backend (đã admin lưu) — merge với mock data.
- * Quy tắc:
- *  - Nếu backend trả về sản phẩm: hiển thị sản phẩm thật TRƯỚC, mock SAU
- *    (đánh dấu mock với __isMock để filter nếu cần).
- *  - Nếu backend lỗi / chưa có sản phẩm nào: hiển thị mock để demo.
- *
- * Lưu ý: chỉ scrape KHI ADMIN IMPORT. Khách truy cập web đọc data đã lưu —
- * không trigger scrape lại.
+ * useProducts — stale-while-revalidate cho danh sách sản phẩm.
+ *  - Init: dùng cache nếu có (instant hiển thị data thật).
+ *  - Mount: fetch fresh, update state + cache.
+ *  - Fallback mock products nếu backend chưa có sản phẩm nào.
  */
 export function useProducts() {
-  const [apiProducts, setApiProducts] = useState([]);
+  const [apiProducts, setApiProducts] = useState(() => readCache() || []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -22,10 +36,11 @@ export function useProducts() {
     try {
       const data = await fetchProducts();
       setApiProducts(data);
+      writeCache(data);
       setError(null);
     } catch (err) {
       setError(err.message);
-      setApiProducts([]);
+      // Giữ data cũ trong state — không reset về [] để tránh flash
     } finally {
       setLoading(false);
     }
@@ -35,14 +50,11 @@ export function useProducts() {
     reload();
   }, [reload]);
 
-  // Sản phẩm thật (admin lưu) ưu tiên. Mock chỉ append nếu chưa có sản phẩm thật.
-  // apiProducts đã được backend filter status=active. Mock không có field status nên coi như active.
   const mockWithFlag = MOCK.map((p) => ({ status: 'active', ...p, __isMock: true }));
   const merged = apiProducts.length > 0
     ? [...apiProducts, ...mockWithFlag]
     : mockWithFlag;
 
-  // Public chỉ hiển thị active (an toàn 2 lớp, phòng có data lẫn từ nguồn khác).
   const products = merged.filter((p) => (p.status || 'active') === 'active');
 
   return { products, apiProducts, mockProducts: mockWithFlag, loading, error, reload };

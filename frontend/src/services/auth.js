@@ -32,6 +32,7 @@ export function logout() {
   try {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    // KHÔNG clear cache data — vẫn cần để khách xem instant lần sau
   } catch {}
 }
 

@@ -9,7 +9,7 @@ import { useProducts } from '../hooks/useProducts';
 
 export default function VideoReels() {
   // Lấy từ API (đã filter active), fallback mock
-  const { items } = useResource(videosApi, MOCK_VIDEOS);
+  const { items } = useResource(videosApi, MOCK_VIDEOS, 'lion_affiliate_videos_v1');
   const { products } = useProducts();
 
   if (!items.length) return null;
