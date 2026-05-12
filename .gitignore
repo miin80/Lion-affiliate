@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+.env
+.env.local
+.env.production
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea
+backend/data/products.json

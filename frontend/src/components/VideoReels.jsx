@@ -1,0 +1,71 @@
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import LazyImage from './LazyImage';
+import { PlayIcon } from './icons';
+import { VIDEOS } from '../data/videos';
+import { getProductBySlug } from '../data/products';
+
+export default function VideoReels() {
+  if (!VIDEOS.length) return null;
+  return (
+    <section id="video-reviews" className="container-page mt-10 scroll-mt-6 sm:mt-14">
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-extrabold sm:text-2xl">🎬 Video review mới nhất</h2>
+          <p className="text-xs text-brand-ink-500 sm:text-sm">
+            Bấm vào video → xem sản phẩm trong bài.
+          </p>
+        </div>
+      </div>
+
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-4 scrollbar-hide sm:mx-0 sm:px-0">
+        {VIDEOS.map((v, i) => {
+          const product = getProductBySlug(v.productSlug);
+          return (
+            <motion.article
+              key={v.id}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.2) }}
+              className="relative w-40 shrink-0 overflow-hidden rounded-2xl bg-brand-ink-900 shadow-card sm:w-48"
+            >
+              <a href={v.videoUrl} target="_blank" rel="noopener noreferrer" className="block">
+                <LazyImage
+                  src={v.thumb}
+                  alt={v.title}
+                  aspect="aspect-[9/16]"
+                  className="opacity-90 transition-opacity hover:opacity-100"
+                />
+                {/* Overlay */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                <div className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white backdrop-blur">
+                  ▶ {v.views}
+                </div>
+                <div className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-brand-ink-900">
+                  {v.duration}
+                </div>
+                <div className="absolute inset-x-2 bottom-12">
+                  <p className="line-clamp-2 text-xs font-bold text-white">{v.title}</p>
+                </div>
+                <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/95 p-2.5 text-brand-ink-900 shadow-card">
+                  <PlayIcon className="h-5 w-5" />
+                </span>
+              </a>
+
+              {product && (
+                <Link
+                  to={`/product/${product.slug}`}
+                  className="absolute inset-x-2 bottom-2 flex items-center justify-between gap-2 rounded-full bg-white/95 px-2.5 py-1.5 text-[11px] font-semibold text-brand-ink-900 backdrop-blur transition hover:bg-white"
+                >
+                  <span className="line-clamp-1">{product.title.split(' — ')[0]}</span>
+                  <span className="shrink-0 text-brand-orange-600">→</span>
+                </Link>
+              )}
+            </motion.article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}

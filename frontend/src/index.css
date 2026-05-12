@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --brand-orange: #f97316;
+    --brand-blue: #2563eb;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-white text-brand-ink-900 font-sans;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+  ::selection {
+    background: #fed7aa;
+    color: #7c2d12;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5
+           text-sm font-semibold transition-all duration-200 focus:outline-none
+           focus:ring-2 focus:ring-offset-2;
+  }
+  .btn-primary {
+    @apply btn bg-brand-orange-500 text-white shadow-cta
+           hover:bg-brand-orange-600 hover:-translate-y-0.5
+           focus:ring-brand-orange-400;
+  }
+  .btn-secondary {
+    @apply btn bg-brand-blue-600 text-white
+           hover:bg-brand-blue-700 hover:-translate-y-0.5
+           focus:ring-brand-blue-400;
+  }
+  .btn-ghost {
+    @apply btn bg-white text-brand-ink-700 ring-1 ring-brand-ink-300
+           hover:ring-brand-orange-400 hover:text-brand-orange-600;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5
+           text-[11px] font-bold uppercase tracking-wide;
+  }
+  .input-base {
+    @apply w-full rounded-2xl border border-brand-ink-200 bg-white px-4 py-2.5
+           text-sm transition focus:border-brand-orange-400 focus:outline-none
+           focus:ring-2 focus:ring-brand-orange-200;
+  }
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #f1f5f9 0px,
+      #e2e8f0 200px,
+      #f1f5f9 400px
+    );
+    background-size: 800px 100%;
+    @apply animate-shimmer;
+  }
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Smooth image fade-in for lazy loaded images */
+img.lazy-img {
+  transition: opacity 0.4s ease, filter 0.4s ease;
+}
+img.lazy-img[data-loaded='false'] {
+  opacity: 0;
+  filter: blur(8px);
+}
+img.lazy-img[data-loaded='true'] {
+  opacity: 1;
+  filter: blur(0);
+}

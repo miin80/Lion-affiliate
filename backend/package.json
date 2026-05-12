@@ -1,0 +1,21 @@
+{
+  "name": "affiliate-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Scraper backend for KOL affiliate site (Shopee, TikTok Shop, Lazada, Tiki, generic OG).",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "puppeteer": "^23.4.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
