@@ -4,14 +4,13 @@
  * Đồng bộ products từ Google Sheet → backend website (1 cú click).
  *
  * Cài đặt:
- *  1. Mở Google Sheet (đã tạo theo GOOGLE_SHEET_SETUP.md)
+ *  1. Mở Google Sheet
  *  2. Extensions → Apps Script → xóa code mẫu → paste TOÀN BỘ file này
- *  3. Ctrl+S để Save → đặt tên project (ví dụ "Lion Affiliate Sync")
+ *  3. Ctrl+S → đặt tên project
  *  4. Reload Sheet (F5) → menu "🚀 Lion Affiliate" xuất hiện
- *  5. Bấm "🔐 Cài đặt tài khoản admin" — paste username + password 1 lần
- *  6. Bấm "🚀 Đồng bộ ngay" — push tất cả lên web
- *
- * Update CONFIG dưới nếu bạn deploy backend ở URL khác.
+ *  5. Bấm "🔐 Cài đặt tài khoản admin" — nhập username + password (1 lần)
+ *  6. Bấm "📋 Tạo header cột" — tạo header tiếng Việt
+ *  7. Điền sản phẩm → Bấm "🔄 Đồng bộ ngay"
  * ============================================================================
  */
 
@@ -19,13 +18,29 @@
 const BACKEND_URL = 'https://lion-affiliate-backend.onrender.com';
 const ADMIN_URL = 'https://lion-affiliate.vercel.app/admin';
 
-const REQUIRED_HEADERS = [
-  'id', 'title', 'sourceUrl', 'affiliateUrl', 'category',
-  'price', 'oldPrice', 'description', 'image', 'gallery',
-  'video', 'rating', 'tags', 'isHot', 'isBestSeller', 'status',
+// Header tiếng Việt — khớp với UI website. Backend cũng nhận các tên này.
+// `field` là tên field nội bộ (camelCase) backend dùng.
+// `display` là text hiển thị trong Sheet (giống nhãn admin).
+const HEADERS = [
+  { display: 'ID',                          field: 'id',           width: 90  },
+  { display: 'Tên sản phẩm',                field: 'title',        width: 280 },
+  { display: 'Link gốc (Shopee/TikTok)',    field: 'sourceUrl',    width: 220 },
+  { display: 'Link affiliate (nút Mua)',    field: 'affiliateUrl', width: 240 },
+  { display: 'Danh mục',                    field: 'category',     width: 110 },
+  { display: 'Giá (VND)',                   field: 'price',        width: 90  },
+  { display: 'Giá gốc',                     field: 'oldPrice',     width: 90  },
+  { display: 'Mô tả ngắn',                  field: 'description',  width: 250 },
+  { display: 'Ảnh chính',                   field: 'image',        width: 200 },
+  { display: 'Gallery (ảnh phụ)',           field: 'gallery',      width: 230 },
+  { display: 'Video',                       field: 'video',        width: 180 },
+  { display: 'Rating',                      field: 'rating',       width: 70  },
+  { display: 'Tags',                        field: 'tags',         width: 180 },
+  { display: 'Hot',                         field: 'isHot',        width: 65  },
+  { display: 'Best Seller',                 field: 'isBestSeller', width: 100 },
+  { display: 'Trạng thái',                  field: 'status',       width: 100 },
 ];
 
-// Lưu credentials trong UserProperties (mỗi user trên Sheet có riêng, không share)
+// Lưu credentials trong UserProperties
 const PROP_USERNAME = 'lion_admin_username';
 const PROP_PASSWORD = 'lion_admin_password';
 const PROP_TOKEN = 'lion_jwt_token';
@@ -71,7 +86,7 @@ function setupCredentials() {
   const password = pwResp.getResponseText();
 
   if (!username || !password) {
-    ui.alert('❌ Username hoặc password rỗng. Huỷ.');
+    ui.alert('❌ Username hoặc password rỗng.');
     return;
   }
 
@@ -79,12 +94,10 @@ function setupCredentials() {
     [PROP_USERNAME]: username,
     [PROP_PASSWORD]: password,
   });
-  // Test login luôn để xác nhận
+
   try {
-    const token = login_();
-    if (token) {
-      ui.alert('✅ Đã lưu credentials và login thành công.\nBấm "🔄 Đồng bộ ngay" để push data lên web.');
-    }
+    login_();
+    ui.alert('✅ Đã lưu credentials và login thành công.\n\nBấm "🔄 Đồng bộ ngay" để push data lên web.');
   } catch (err) {
     ui.alert('❌ Login thất bại: ' + err.message + '\n\nCredentials đã lưu nhưng có thể sai. Bấm "🧪 Test kết nối" để debug.');
   }
@@ -100,7 +113,7 @@ function login_() {
   const username = props.getProperty(PROP_USERNAME);
   const password = props.getProperty(PROP_PASSWORD);
   if (!username || !password) {
-    throw new Error('Chưa setup credentials. Bấm menu "🔐 Cài đặt tài khoản admin" trước.');
+    throw new Error('Chưa setup credentials. Menu → "🔐 Cài đặt tài khoản admin".');
   }
   const res = UrlFetchApp.fetch(BACKEND_URL + '/api/auth/login', {
     method: 'post',
@@ -116,7 +129,7 @@ function login_() {
   const data = JSON.parse(body);
   props.setProperties({
     [PROP_TOKEN]: data.token,
-    [PROP_TOKEN_EXP]: String(Date.now() + 6 * 24 * 3600 * 1000), // 6 ngày
+    [PROP_TOKEN_EXP]: String(Date.now() + 6 * 24 * 3600 * 1000),
   });
   return data.token;
 }
@@ -132,12 +145,10 @@ function getValidToken_() {
 function testConnection() {
   const ui = SpreadsheetApp.getUi();
   try {
-    // Health check (public)
     const r1 = UrlFetchApp.fetch(BACKEND_URL + '/api/health', { muteHttpExceptions: true });
     const health = JSON.parse(r1.getContentText());
     if (!health.ok) throw new Error('Health check fail');
 
-    // Auth check
     const token = getValidToken_();
     const r2 = UrlFetchApp.fetch(BACKEND_URL + '/api/auth/me', {
       headers: { Authorization: 'Bearer ' + token },
@@ -152,29 +163,113 @@ function testConnection() {
   }
 }
 
+// ============ SHEET HELPERS ============
+function createHeaders() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  if (sheet.getLastRow() > 0) {
+    const yes = SpreadsheetApp.getUi().alert(
+      'Sheet đã có dữ liệu. Tạo header sẽ ghi đè dòng 1. Tiếp tục?',
+      SpreadsheetApp.getUi().ButtonSet.YES_NO
+    );
+    if (yes !== SpreadsheetApp.getUi().Button.YES) return;
+  }
+  const displays = HEADERS.map(function (h) { return h.display; });
+  const range = sheet.getRange(1, 1, 1, displays.length);
+  range.setValues([displays]);
+  range
+    .setFontWeight('bold')
+    .setBackground('#fff7ed')
+    .setHorizontalAlignment('center')
+    .setVerticalAlignment('middle')
+    .setWrap(true);
+  sheet.setFrozenRows(1);
+  sheet.setRowHeight(1, 36);
+
+  HEADERS.forEach(function (h, i) {
+    sheet.setColumnWidth(i + 1, h.width);
+  });
+
+  // Note (tooltip) cho từng cột — hover hiện hint
+  const notes = [
+    'Để trống = tạo mới. Giữ id cũ = update sản phẩm cũ.',
+    'BẮT BUỘC. Tên sản phẩm hiển thị trên web.',
+    'Link Shopee/TikTok gốc. CHỈ ĐỂ LẤY DATA, không phải link mua.',
+    'BẮT BUỘC. Link affiliate của bạn. Khách bấm Mua = đi qua link này = bạn ăn hoa hồng.',
+    'Slug: gia-dung / do-bep / lam-dep / cong-nghe / me-be / an-vat',
+    'Số VND, không gõ dấu chấm/phẩy. VD: 49000',
+    'Giá gốc (gạch ngang). Để trống nếu không giảm giá.',
+    'Mô tả ngắn 1-2 câu hiển thị dưới tên.',
+    'URL ảnh cover (1 ảnh).',
+    'Nhiều URL ảnh phụ, cách nhau dấu phẩy.',
+    'URL video .mp4 (tuỳ chọn).',
+    'Số 0-5, mặc định 4.8.',
+    'Nhiều tag cách nhau dấu phẩy.',
+    'true = hiện badge 🔥 HOT. Còn lại false.',
+    'true = hiện badge 👑 BEST SELLER. Còn lại false.',
+    'active = hiện trên web. hidden = ẩn.',
+  ];
+  HEADERS.forEach(function (h, i) {
+    sheet.getRange(1, i + 1).setNote(notes[i] || '');
+  });
+
+  SpreadsheetApp.getUi().alert(
+    '✅ Đã tạo ' + HEADERS.length + ' cột header.\n\n' +
+    '💡 Hover chuột vào header để xem hint.\n' +
+    '👉 Nhập sản phẩm từ dòng 2 trở đi.'
+  );
+}
+
+function insertSampleRow() {
+  const sheet = SpreadsheetApp.getActiveSheet();
+  // Match thứ tự HEADERS
+  const sample = [
+    'p_' + Date.now(),                                  // ID
+    'Túi giấy lau tay siêu thấm 100 tờ',                // Tên sản phẩm
+    'https://shopee.vn/-i.123.456',                     // Link gốc
+    'https://s.shopee.vn/aff_xxx',                      // Link affiliate
+    'gia-dung',                                         // Danh mục
+    49000,                                              // Giá
+    89000,                                              // Giá gốc
+    'Giấy lau tay an toàn cho gia đình, siêu thấm.',    // Mô tả ngắn
+    'https://i.imgur.com/sample.jpg',                   // Ảnh chính
+    'https://i.imgur.com/g1.jpg, https://i.imgur.com/g2.jpg', // Gallery
+    '',                                                 // Video
+    4.8,                                                // Rating
+    'giấy, lau tay, gia dụng',                          // Tags
+    'true',                                             // Hot
+    'false',                                            // Best Seller
+    'active',                                           // Trạng thái
+  ];
+  sheet.appendRow(sample);
+  SpreadsheetApp.getUi().alert('✅ Đã thêm 1 sample row. Sửa data rồi bấm "🔄 Đồng bộ ngay".');
+}
+
 // ============ SYNC ============
-/** Đọc toàn bộ rows trong sheet hiện tại → array of products (đã filter active). */
+/**
+ * Đọc rows trong sheet → array of products.
+ * Support cả header tiếng Việt (display) và tiếng Anh (field) — backward compat.
+ */
 function readSheetProducts_(onlySelected) {
   const sheet = SpreadsheetApp.getActiveSheet();
   const lastRow = sheet.getLastRow();
   const lastCol = sheet.getLastColumn();
-  if (lastRow < 2) return [];
+  if (lastRow < 2) return { products: [], skipped: [] };
 
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map((h) =>
-    String(h || '').trim().toLowerCase()
-  );
+  const rawHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(function (h) { return String(h || '').trim().toLowerCase(); });
 
-  // Map header name → column index
+  // Map field name → column index. Hỗ trợ cả tiếng Việt (display) và tiếng Anh (field).
   const idx = {};
-  REQUIRED_HEADERS.forEach((h) => {
-    const i = headers.indexOf(h.toLowerCase());
-    if (i >= 0) idx[h] = i;
+  HEADERS.forEach(function (h) {
+    let i = rawHeaders.indexOf(h.display.toLowerCase());
+    if (i < 0) i = rawHeaders.indexOf(h.field.toLowerCase());
+    if (i >= 0) idx[h.field] = i;
   });
+
   if (idx.title === undefined) {
-    throw new Error('Sheet thiếu cột "title". Vào menu → "📋 Tạo header cột".');
+    throw new Error('Sheet thiếu cột "Tên sản phẩm" (hoặc "title"). Bấm "📋 Tạo header cột" trước.');
   }
 
-  // Nếu chỉ lấy dòng đã chọn → đọc activeRange
   let startRow = 2;
   let numRows = lastRow - 1;
   if (onlySelected) {
@@ -188,8 +283,8 @@ function readSheetProducts_(onlySelected) {
   const products = [];
   const skipped = [];
 
-  data.forEach((row, i) => {
-    const get = (key) => {
+  data.forEach(function (row, i) {
+    const get = function (key) {
       if (idx[key] === undefined) return '';
       const v = row[idx[key]];
       return v === null || v === undefined ? '' : String(v).trim();
@@ -198,19 +293,21 @@ function readSheetProducts_(onlySelected) {
 
     const status = (get('status') || 'active').toLowerCase();
     if (status !== 'active') {
-      skipped.push({ rowNum, reason: 'status != active' });
+      skipped.push({ rowNum: rowNum, reason: 'status != active' });
       return;
     }
 
     const title = get('title');
     if (!title) {
-      skipped.push({ rowNum, reason: 'thiếu title' });
+      skipped.push({ rowNum: rowNum, reason: 'thiếu Tên sản phẩm' });
       return;
     }
 
     const image = get('image');
     const gallery = splitList_(get('gallery'));
-    const images = image ? [image].concat(gallery.filter((g) => g !== image)) : gallery;
+    const images = image
+      ? [image].concat(gallery.filter(function (g) { return g !== image; }))
+      : gallery;
 
     const badges = ['reviewed'];
     if (parseBool_(get('isHot'))) badges.push('hot');
@@ -250,12 +347,8 @@ function readSheetProducts_(onlySelected) {
   return { products: products, skipped: skipped };
 }
 
-function syncAll() {
-  doSync_(false);
-}
-function syncSelected() {
-  doSync_(true);
-}
+function syncAll() { doSync_(false); }
+function syncSelected() { doSync_(true); }
 
 function doSync_(onlySelected) {
   const ui = SpreadsheetApp.getUi();
@@ -267,15 +360,18 @@ function doSync_(onlySelected) {
     return;
   }
   if (!result.products.length) {
-    ui.alert('⚠️ Không có dòng nào để sync.\n\nSkip:\n' + (result.skipped.slice(0, 10).map((s) => 'Dòng ' + s.rowNum + ': ' + s.reason).join('\n') || '(none)'));
+    ui.alert('⚠️ Không có dòng nào để sync.\n\nSkip:\n' +
+      (result.skipped.slice(0, 10).map(function (s) {
+        return 'Dòng ' + s.rowNum + ': ' + s.reason;
+      }).join('\n') || '(none)')
+    );
     return;
   }
 
-  // Confirm
   const confirm = ui.alert(
     'Xác nhận đồng bộ',
     'Sẽ push ' + result.products.length + ' sản phẩm lên website.\n' +
-      (result.skipped.length ? 'Bỏ qua ' + result.skipped.length + ' dòng (status != active hoặc thiếu title).\n' : '') +
+      (result.skipped.length ? 'Bỏ qua ' + result.skipped.length + ' dòng.\n' : '') +
       '\nTiếp tục?',
     ui.ButtonSet.YES_NO
   );
@@ -289,10 +385,9 @@ function doSync_(onlySelected) {
     return;
   }
 
-  // Strip _rowNum trước khi gửi
-  const payload = result.products.map((p) => {
-    const copy = Object.assign({}, p);
-    delete copy._rowNum;
+  const payload = result.products.map(function (p) {
+    const copy = {};
+    Object.keys(p).forEach(function (k) { if (k !== '_rowNum') copy[k] = p[k]; });
     return copy;
   });
 
@@ -315,70 +410,36 @@ function doSync_(onlySelected) {
     'Đã import: ' + data.imported + '\n' +
     'Lỗi: ' + data.errors;
   if (data.errors > 0 && data.details && data.details.errors) {
-    msg += '\n\nChi tiết lỗi:\n' + data.details.errors.slice(0, 10).map((e) =>
-      '• ' + (e.title || '(no title)') + ': ' + e.error
-    ).join('\n');
+    msg += '\n\nChi tiết lỗi:\n' + data.details.errors.slice(0, 10).map(function (e) {
+      return '• ' + (e.title || '(no title)') + ': ' + e.error;
+    }).join('\n');
   }
   ui.alert(msg);
 }
 
-// ============ HELPER (Sheet utility) ============
-function createHeaders() {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  if (sheet.getLastRow() > 0) {
-    const yes = SpreadsheetApp.getUi().alert(
-      'Sheet đã có dữ liệu. Tạo header sẽ ghi đè dòng 1. Tiếp tục?',
-      SpreadsheetApp.getUi().ButtonSet.YES_NO
-    );
-    if (yes !== SpreadsheetApp.getUi().Button.YES) return;
-  }
-  const range = sheet.getRange(1, 1, 1, REQUIRED_HEADERS.length);
-  range.setValues([REQUIRED_HEADERS]);
-  range.setFontWeight('bold').setBackground('#fff7ed').setHorizontalAlignment('center');
-  sheet.setFrozenRows(1);
-  const widths = [80, 250, 200, 200, 100, 80, 80, 200, 150, 200, 150, 60, 150, 70, 100, 80];
-  widths.forEach((w, i) => sheet.setColumnWidth(i + 1, w));
-  SpreadsheetApp.getUi().alert('✅ Đã tạo 16 cột header. Nhập sản phẩm từ dòng 2.');
-}
-
-function insertSampleRow() {
-  const sheet = SpreadsheetApp.getActiveSheet();
-  const sample = [
-    'p_' + Date.now(),
-    'Túi giấy lau tay siêu thấm 100 tờ',
-    'https://shopee.vn/-i.123.456',
-    'https://s.shopee.vn/aff_xxx',
-    'gia-dung',
-    49000,
-    89000,
-    'Giấy lau tay an toàn, siêu thấm.',
-    'https://i.imgur.com/sample.jpg',
-    'https://i.imgur.com/g1.jpg, https://i.imgur.com/g2.jpg',
-    '',
-    4.8,
-    'giấy, lau tay, gia dụng',
-    'true',
-    'false',
-    'active',
-  ];
-  sheet.appendRow(sample);
-  SpreadsheetApp.getUi().alert('✅ Đã thêm 1 sample row. Sửa data rồi bấm "🔄 Đồng bộ ngay".');
-}
-
+// ============ VALIDATE / STATS ============
 function validateRows() {
-  const result = readSheetProducts_(false);
+  let result;
+  try {
+    result = readSheetProducts_(false);
+  } catch (err) {
+    SpreadsheetApp.getUi().alert('❌ ' + err.message);
+    return;
+  }
   const valid = result.products.length;
   const skipped = result.skipped.length;
   let msg = '✅ Hợp lệ (active + có title): ' + valid + ' dòng\n';
   msg += '⏭ Skip: ' + skipped + ' dòng\n';
   if (skipped > 0) {
-    msg += '\nChi tiết:\n' + result.skipped.slice(0, 10).map((s) => 'Dòng ' + s.rowNum + ': ' + s.reason).join('\n');
+    msg += '\nChi tiết:\n' + result.skipped.slice(0, 10).map(function (s) {
+      return 'Dòng ' + s.rowNum + ': ' + s.reason;
+    }).join('\n');
   }
 
   const warnings = [];
-  result.products.forEach((p) => {
-    if (!p.affiliateUrl) warnings.push('Dòng ' + p._rowNum + ': thiếu affiliateUrl');
-    if (!p.images.length) warnings.push('Dòng ' + p._rowNum + ': thiếu image');
+  result.products.forEach(function (p) {
+    if (!p.affiliateUrl) warnings.push('Dòng ' + p._rowNum + ': thiếu Link affiliate');
+    if (!p.images.length) warnings.push('Dòng ' + p._rowNum + ': thiếu Ảnh chính');
   });
   if (warnings.length) {
     msg += '\n\n⚠️ Cảnh báo:\n' + warnings.slice(0, 10).join('\n');
@@ -388,27 +449,38 @@ function validateRows() {
 
 function showStats() {
   const sheet = SpreadsheetApp.getActiveSheet();
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map((h) => String(h || '').toLowerCase());
-  const statusIdx = headers.indexOf('status');
-  const catIdx = headers.indexOf('category');
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) {
     SpreadsheetApp.getUi().alert('Sheet rỗng.');
     return;
   }
-  const data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  const lastCol = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(function (h) { return String(h || '').toLowerCase(); });
+
+  // Tìm cột status + category (tiếng Việt hoặc Anh)
+  let statusIdx = headers.indexOf('trạng thái');
+  if (statusIdx < 0) statusIdx = headers.indexOf('status');
+  let catIdx = headers.indexOf('danh mục');
+  if (catIdx < 0) catIdx = headers.indexOf('category');
+
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   const byStatus = {};
   const byCategory = {};
-  data.forEach((row) => {
+  data.forEach(function (row) {
     const s = String((statusIdx >= 0 ? row[statusIdx] : 'active') || 'active');
     byStatus[s] = (byStatus[s] || 0) + 1;
     const c = String((catIdx >= 0 ? row[catIdx] : '(none)') || '(none)');
     byCategory[c] = (byCategory[c] || 0) + 1;
   });
-  let msg = '📊 Thống kê\n\nTổng: ' + data.length + ' dòng\n\nTheo status:\n';
-  Object.keys(byStatus).forEach((k) => msg += '  ' + k + ': ' + byStatus[k] + '\n');
-  msg += '\nTheo category:\n';
-  Object.keys(byCategory).forEach((k) => msg += '  ' + k + ': ' + byCategory[k] + '\n');
+  let msg = '📊 Thống kê\n\nTổng: ' + data.length + ' dòng\n\nTheo trạng thái:\n';
+  Object.keys(byStatus).forEach(function (k) {
+    msg += '  ' + k + ': ' + byStatus[k] + '\n';
+  });
+  msg += '\nTheo danh mục:\n';
+  Object.keys(byCategory).forEach(function (k) {
+    msg += '  ' + k + ': ' + byCategory[k] + '\n';
+  });
   SpreadsheetApp.getUi().alert(msg);
 }
 
