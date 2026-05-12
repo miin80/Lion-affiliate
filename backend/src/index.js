@@ -8,6 +8,7 @@ import {
   listAdminRoute,
   getRoute,
   saveRoute,
+  bulkSaveRoute,
   statusRoute,
   deleteRoute,
 } from './routes/products.js';
@@ -82,6 +83,7 @@ app.post('/api/import-product', requireAuth, importProductRoute);
 
 app.get('/api/products/admin', requireAuth, listAdminRoute);
 app.post('/api/products', requireAuth, saveRoute);
+app.post('/api/products/bulk', requireAuth, bulkSaveRoute);
 app.put('/api/products/:id', requireAuth, (req, res) => {
   req.body.id = req.params.id;
   return saveRoute(req, res);

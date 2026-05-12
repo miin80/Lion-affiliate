@@ -37,6 +37,44 @@ export async function getRoute(req, res) {
   }
 }
 
+/**
+ * POST /api/products/bulk
+ * Body: { products: [...] }
+ * Dùng cho Google Apps Script đồng bộ trực tiếp. Upsert theo id.
+ */
+export async function bulkSaveRoute(req, res) {
+  try {
+    const list = Array.isArray(req.body?.products) ? req.body.products : [];
+    if (!list.length) {
+      return res.status(400).json({ error: 'products[] rỗng' });
+    }
+    const imported = [];
+    const errors = [];
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i] || {};
+      try {
+        if (!p.title) throw new Error('Thiếu title');
+        if (!p.affiliateUrl) throw new Error('Thiếu affiliateUrl');
+        if (!Array.isArray(p.images)) p.images = p.image ? [p.image] : [];
+        if (!Array.isArray(p.tags)) p.tags = [];
+        if (!Array.isArray(p.badges)) p.badges = ['reviewed'];
+        const saved = await saveProduct(p);
+        imported.push({ id: saved.id, title: saved.title });
+      } catch (err) {
+        errors.push({ index: i, title: p.title, error: err.message });
+      }
+    }
+    res.json({
+      total: list.length,
+      imported: imported.length,
+      errors: errors.length,
+      details: { imported, errors },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 export async function saveRoute(req, res) {
   try {
     const body = req.body || {};
