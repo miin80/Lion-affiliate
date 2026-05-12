@@ -17,10 +17,13 @@ export async function scrape(url) {
 
   let data;
   try {
-    if (platform === 'shopee' && USE_PUPPETEER) data = await scrapeShopee(url);
+    // Shopee + Tiki dùng API (axios) — chạy được KHÔNG cần Puppeteer.
+    if (platform === 'shopee') data = await scrapeShopee(url);
+    else if (platform === 'tiki') data = await scrapeTiki(url);
+    // TikTok/Lazada bắt buộc Puppeteer (SPA + chặn bot mạnh).
     else if (platform === 'tiktok' && USE_PUPPETEER) data = await scrapeTiktok(url);
     else if (platform === 'lazada' && USE_PUPPETEER) data = await scrapeLazada(url);
-    else if (platform === 'tiki') data = await scrapeTiki(url);
+    // Mặc định: Open Graph + JSON-LD.
     else data = await scrapeGeneric(url);
   } catch (err) {
     console.warn(`[scrape] ${platform} fail, fallback generic:`, err.message);
