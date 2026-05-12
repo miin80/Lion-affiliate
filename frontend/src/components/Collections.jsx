@@ -1,13 +1,16 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import LazyImage from './LazyImage';
-import { COLLECTIONS as MOCK_COLLECTIONS } from '../data/collections';
 import { useResource } from '../hooks/useResource';
 import { collectionsApi } from '../services/resources';
 import { ArrowRight } from './icons';
+import { COLLECTIONS as MOCK_COLLECTIONS } from '../data/collections';
+import { SHOW_DEMO_DATA } from '../utils/demoFlag';
 
 export default function Collections() {
-  const { items } = useResource(collectionsApi, MOCK_COLLECTIONS, 'lion_affiliate_collections_v1');
+  // Production: rỗng → section ẩn. Dev: mock fallback.
+  const fallback = SHOW_DEMO_DATA ? MOCK_COLLECTIONS : [];
+  const { items } = useResource(collectionsApi, fallback, 'lion_affiliate_collections_v2');
   if (!items.length) return null;
   return (
     <section className="container-page mt-10 sm:mt-14">

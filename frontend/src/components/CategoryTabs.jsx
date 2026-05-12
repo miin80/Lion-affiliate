@@ -3,7 +3,7 @@ import { useResource } from '../hooks/useResource';
 import { categoriesApi } from '../services/resources';
 
 export default function CategoryTabs({ active, onChange, sort, onSortChange }) {
-  const { items } = useResource(categoriesApi, MOCK_CATS, 'lion_affiliate_categories_v1');
+  const { items } = useResource(categoriesApi, MOCK_CATS, 'lion_affiliate_categories_v2');
   return (
     <div className="container-page mt-6 sm:mt-8">
       <div className="flex items-center justify-between gap-3">

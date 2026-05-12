@@ -1,13 +1,18 @@
 import { Link } from 'react-router-dom';
 import Seo from '../components/Seo';
 import LazyImage from '../components/LazyImage';
-import { BLOG_POSTS as MOCK_BLOG } from '../data/blogPosts';
+import { Link } from 'react-router-dom';
 import { formatDate } from '../utils/format';
+import { isAuthenticated } from '../services/auth';
 import { useResource } from '../hooks/useResource';
 import { blogsApi } from '../services/resources';
+import { BLOG_POSTS as MOCK_BLOG } from '../data/blogPosts';
+import { SHOW_DEMO_DATA } from '../utils/demoFlag';
 
 export default function Blog() {
-  const { items } = useResource(blogsApi, MOCK_BLOG, 'lion_affiliate_blogs_v1');
+  // Production: rỗng = empty state. Dev: mock fallback.
+  const fallback = SHOW_DEMO_DATA ? MOCK_BLOG : [];
+  const { items } = useResource(blogsApi, fallback, 'lion_affiliate_blogs_v2');
   return (
     <>
       <Seo title="Blog Review" description="Top sản phẩm nên mua, review chi tiết, so sánh." />
@@ -17,6 +22,23 @@ export default function Blog() {
           Top sản phẩm nên mua · Review chi tiết · So sánh
         </p>
       </section>
+
+      {items.length === 0 && (
+        <section className="container-page mt-6">
+          <div className="flex flex-col items-center gap-3 rounded-3xl bg-brand-ink-50 p-10 text-center">
+            <div className="text-5xl">📝</div>
+            <p className="max-w-md text-sm text-brand-ink-500">
+              Chưa có bài viết nào. Hãy thêm bài review trong trang quản trị.
+            </p>
+            <Link
+              to={isAuthenticated() ? '/admin' : '/admin/login'}
+              className="btn-primary mt-2 text-xs"
+            >
+              🚪 Vào trang quản trị
+            </Link>
+          </div>
+        </section>
+      )}
 
       <section className="container-page mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((post) => (

@@ -1,15 +1,16 @@
 import { motion } from 'framer-motion';
 import LazyImage from './LazyImage';
 import { PlayIcon } from './icons';
-import { VIDEOS as MOCK_VIDEOS } from '../data/videos';
-import { getProductBySlug } from '../data/products';
 import { useResource } from '../hooks/useResource';
 import { videosApi } from '../services/resources';
 import { useProducts } from '../hooks/useProducts';
+import { VIDEOS as MOCK_VIDEOS } from '../data/videos';
+import { SHOW_DEMO_DATA } from '../utils/demoFlag';
 
 export default function VideoReels() {
-  // Lấy từ API (đã filter active), fallback mock
-  const { items } = useResource(videosApi, MOCK_VIDEOS, 'lion_affiliate_videos_v1');
+  // Production: rỗng → section ẩn. Dev (SHOW_DEMO_DATA=true): mock fallback để test UI.
+  const fallback = SHOW_DEMO_DATA ? MOCK_VIDEOS : [];
+  const { items } = useResource(videosApi, fallback, 'lion_affiliate_videos_v2');
   const { products } = useProducts();
 
   if (!items.length) return null;
@@ -29,7 +30,7 @@ export default function VideoReels() {
           // 1. Resolve product: ưu tiên productId (id thật), fallback productSlug (mock)
           const linkedProduct =
             (v.productId && products.find((p) => p.id === v.productId)) ||
-            (v.productSlug && (products.find((p) => p.slug === v.productSlug) || getProductBySlug(v.productSlug)));
+            (v.productSlug && products.find((p) => p.slug === v.productSlug));
           const productHref = linkedProduct ? `/product/${linkedProduct.slug}` : null;
           const buyHref = v.affiliateUrl?.trim() || linkedProduct?.affiliateUrl || '';
 

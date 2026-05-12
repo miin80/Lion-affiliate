@@ -64,7 +64,13 @@ export default function Home() {
             <ProductGrid
               products={filtered}
               onOpen={setActive}
-              emptyText="Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé."
+              emptyIcon={products.length === 0 ? '🌱' : '🔍'}
+              emptyText={
+                products.length === 0 && !loading
+                  ? 'Chưa có sản phẩm nào. Vui lòng thêm sản phẩm trong trang quản trị (Import hoặc Google Sheet).'
+                  : 'Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé.'
+              }
+              showAdminCta={products.length === 0}
             />
           </section>
         </>

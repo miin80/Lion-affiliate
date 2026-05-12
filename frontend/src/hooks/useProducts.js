@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchProducts } from '../services/api';
-import { PRODUCTS as MOCK } from '../data/products';
+import { PRODUCTS as MOCK_PRODUCTS } from '../data/products';
+import { SHOW_DEMO_DATA } from '../utils/demoFlag';
 
 const CACHE_KEY = 'lion_affiliate_products_v2';
 
@@ -21,10 +22,9 @@ function writeCache(arr) {
 }
 
 /**
- * useProducts — stale-while-revalidate cho danh sách sản phẩm.
- *  - Init: dùng cache nếu có (instant hiển thị data thật).
- *  - Mount: fetch fresh, update state + cache.
- *  - Fallback mock products nếu backend chưa có sản phẩm nào.
+ * useProducts — fetch sản phẩm thật từ backend.
+ *  - Production (VITE_SHOW_DEMO_DATA=false): chỉ sản phẩm thật. Backend rỗng = empty.
+ *  - Dev (VITE_SHOW_DEMO_DATA=true): fallback mock data khi backend rỗng để demo UI.
  */
 export function useProducts() {
   const [apiProducts, setApiProducts] = useState(() => readCache() || []);
@@ -40,7 +40,6 @@ export function useProducts() {
       setError(null);
     } catch (err) {
       setError(err.message);
-      // Giữ data cũ trong state — không reset về [] để tránh flash
     } finally {
       setLoading(false);
     }
@@ -50,14 +49,20 @@ export function useProducts() {
     reload();
   }, [reload]);
 
-  // Logic hiển thị:
-  //   - apiProducts có data → CHỈ hiển thị sản phẩm thật (mock tự ẩn đi)
-  //   - apiProducts rỗng (chưa có sản phẩm nào / backend down) → fallback mock để demo
-  // → Khi user thêm sản phẩm thật đầu tiên, 12 demo products biến mất ngay.
-  const mockWithFlag = MOCK.map((p) => ({ status: 'active', ...p, __isMock: true }));
-  const merged = apiProducts.length > 0 ? apiProducts : mockWithFlag;
+  // Logic:
+  //   - Có sản phẩm thật → chỉ hiện sản phẩm thật
+  //   - Không có sản phẩm thật + SHOW_DEMO_DATA=true → fallback mock (dev only)
+  //   - Không có sản phẩm thật + SHOW_DEMO_DATA=false → rỗng (production)
+  let merged;
+  if (apiProducts.length > 0) {
+    merged = apiProducts;
+  } else if (SHOW_DEMO_DATA) {
+    merged = MOCK_PRODUCTS.map((p) => ({ status: 'active', ...p, __isMock: true }));
+  } else {
+    merged = [];
+  }
 
   const products = merged.filter((p) => (p.status || 'active') === 'active');
 
-  return { products, apiProducts, mockProducts: mockWithFlag, loading, error, reload };
+  return { products, apiProducts, loading, error, reload };
 }

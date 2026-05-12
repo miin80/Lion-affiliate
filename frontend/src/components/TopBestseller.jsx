@@ -3,7 +3,7 @@ import LazyImage from './LazyImage';
 import Rating from './Rating';
 import { formatVND, formatCompact, discountPercent } from '../utils/format';
 import { getAffiliateUrl } from '../config/affiliate';
-import { getTopBestsellers, PRODUCTS as MOCK } from '../data/products';
+// Không import MOCK — chỉ hiện sản phẩm thật.
 
 const PODIUM = [
   { rank: 1, label: '🥇', color: 'from-amber-400 to-yellow-500' },
@@ -13,14 +13,15 @@ const PODIUM = [
 
 export default function TopBestseller({ onOpen, products }) {
   // Ưu tiên sản phẩm có badge "bestseller", fallback sang sold count.
-  const pool = products?.length ? products : MOCK;
+  // Section CHỈ hiện khi có ít nhất 3 sản phẩm thật (podium 🥇🥈🥉).
+  const pool = products || [];
+  if (pool.length < 3) return null;
   const tagged = pool.filter((p) => p.badges?.includes('bestseller'));
   const top = (tagged.length >= 3 ? tagged : pool)
     .slice()
     .sort((a, b) => (b.sold || 0) - (a.sold || 0))
     .slice(0, 3);
   if (!top.length) return null;
-  void getTopBestsellers; // keep import if not used elsewhere
 
   return (
     <section className="container-page mt-10 sm:mt-14">
