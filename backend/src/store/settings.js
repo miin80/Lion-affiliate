@@ -55,6 +55,15 @@ export const DEFAULT_SETTINGS = {
   disclosure:
     'Một số liên kết trên website là liên kết tiếp thị. Khi bạn mua hàng qua các liên kết này, mình có thể nhận được một khoản hoa hồng nhỏ — bạn KHÔNG phải trả thêm bất kỳ chi phí nào.',
   email: 'contact@mira-reviews.example.com',
+  // Bật/tắt section hiển thị trên trang chủ
+  sections: {
+    hero: true,
+    products: true,
+    videoReels: true,
+    topBestseller: true,
+    collections: true,
+    blog: true,
+  },
 };
 
 async function ensureFile() {

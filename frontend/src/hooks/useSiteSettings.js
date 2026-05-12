@@ -29,6 +29,14 @@ export const DEFAULT_SITE_SETTINGS = {
   },
   disclosure: SITE.disclaimer || SITE.disclosure,
   email: SITE.email,
+  sections: {
+    hero: true,
+    products: true,
+    videoReels: true,
+    topBestseller: true,
+    collections: true,
+    blog: true,
+  },
 };
 
 export function useSiteSettings() {

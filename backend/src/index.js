@@ -14,6 +14,13 @@ import {
 import { getSettingsRoute, putSettingsRoute } from './routes/settings.js';
 import { loginRoute, meRoute } from './routes/auth.js';
 import { requireAuth } from './middleware/auth.js';
+import { createRoutes } from './store/genericStore.js';
+import {
+  videosStore,
+  categoriesStore,
+  collectionsStore,
+  blogsStore,
+} from './store/resources.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -50,6 +57,24 @@ app.patch('/api/products/:id/status', requireAuth, statusRoute);
 app.delete('/api/products/:id', requireAuth, deleteRoute);
 
 app.put('/api/site-settings', requireAuth, putSettingsRoute);
+
+// ============ GENERIC CMS RESOURCES ============
+// Mỗi resource có: GET public (active only), GET /admin, GET /:id,
+//                  POST (save), PUT /:id, PATCH /:id/status, DELETE /:id
+function mountResource(base, store) {
+  const r = createRoutes(store);
+  app.get(`/api/${base}`, r.list);
+  app.get(`/api/${base}/admin`, requireAuth, r.listAdmin);
+  app.get(`/api/${base}/:id`, r.get);
+  app.post(`/api/${base}`, requireAuth, r.save);
+  app.put(`/api/${base}/:id`, requireAuth, r.update);
+  app.patch(`/api/${base}/:id/status`, requireAuth, r.setStatus);
+  app.delete(`/api/${base}/:id`, requireAuth, r.remove);
+}
+mountResource('videos', videosStore);
+mountResource('categories', categoriesStore);
+mountResource('collections', collectionsStore);
+mountResource('blogs', blogsStore);
 
 app.use((err, _req, res, _next) => {
   console.error('UNHANDLED:', err);

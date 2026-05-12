@@ -1,6 +1,9 @@
-import { CATEGORIES } from '../data/categories';
+import { CATEGORIES as MOCK_CATS } from '../data/categories';
+import { useResource } from '../hooks/useResource';
+import { categoriesApi } from '../services/resources';
 
 export default function CategoryTabs({ active, onChange, sort, onSortChange }) {
+  const { items } = useResource(categoriesApi, MOCK_CATS);
   return (
     <div className="container-page mt-6 sm:mt-8">
       <div className="flex items-center justify-between gap-3">
@@ -9,11 +12,11 @@ export default function CategoryTabs({ active, onChange, sort, onSortChange }) {
       </div>
 
       <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-hide sm:mx-0 sm:px-0">
-        {CATEGORIES.map((c) => {
+        {items.map((c) => {
           const isActive = active === c.slug;
           return (
             <button
-              key={c.slug}
+              key={c.slug || c.id}
               onClick={() => onChange(c.slug)}
               className={[
                 'flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-semibold transition-all',
@@ -45,9 +48,7 @@ function SortDropdown({ value, onChange }) {
         <option value="price-asc">💸 Giá thấp → cao</option>
         <option value="price-desc">💸 Giá cao → thấp</option>
       </select>
-      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-ink-400">
-        ▾
-      </span>
+      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-ink-400">▾</span>
     </div>
   );
 }

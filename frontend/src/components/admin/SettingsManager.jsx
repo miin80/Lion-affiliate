@@ -293,6 +293,33 @@ export default function SettingsManager() {
         </div>
       </Section>
 
+      {/* SECTIONS VISIBILITY */}
+      <Section title="📐 Bật/tắt section trang chủ" desc="Tắt section nào sẽ ẩn hoàn toàn khỏi trang chủ">
+        <div className="grid gap-2 sm:grid-cols-2">
+          {[
+            { key: 'hero', label: '🌟 Hero (tiêu đề + search)' },
+            { key: 'products', label: '🛍 Lưới sản phẩm' },
+            { key: 'videoReels', label: '🎬 Video review' },
+            { key: 'topBestseller', label: '🏆 Top bán chạy' },
+            { key: 'collections', label: '📚 Bộ sưu tập' },
+            { key: 'blog', label: '📝 Blog' },
+          ].map((s) => {
+            const on = settings.sections?.[s.key] !== false;
+            return (
+              <label key={s.key} className="flex cursor-pointer items-center justify-between rounded-2xl bg-brand-ink-50 p-3 text-sm">
+                <span className="font-semibold">{s.label}</span>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  onChange={(e) => update(`sections.${s.key}`, e.target.checked)}
+                  className="h-5 w-5 accent-brand-orange-500"
+                />
+              </label>
+            );
+          })}
+        </div>
+      </Section>
+
       <div className="sticky bottom-20 z-10 flex justify-end gap-2 rounded-2xl bg-white/95 p-3 shadow-card ring-1 ring-brand-ink-100 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0">
         <button
           onClick={handleSave}

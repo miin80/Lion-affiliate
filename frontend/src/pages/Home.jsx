@@ -10,6 +10,7 @@ import Collections from '../components/Collections';
 import ProductModal from '../components/ProductModal';
 import { filterAndSort } from '../data/products';
 import { useProducts } from '../hooks/useProducts';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 
 export default function Home() {
   const [category, setCategory] = useState('all');
@@ -17,6 +18,10 @@ export default function Home() {
   const [sort, setSort] = useState('hot');
   const [active, setActive] = useState(null);
   const { products, loading } = useProducts();
+  const { settings } = useSiteSettings();
+  const sections = settings.sections || {};
+  // mặc định bật nếu chưa cấu hình
+  const show = (key) => sections[key] !== false;
 
   const filtered = useMemo(
     () => filterAndSort(products, { category, search, sort }),
@@ -28,40 +33,46 @@ export default function Home() {
       <Seo />
 
       <ProfileHeader />
-      <HeroSearch
-        value={search}
-        onChange={setSearch}
-        onDealClick={() => {
-          setCategory('deal');
-          setTimeout(() => {
-            document.getElementById('product-grid')?.scrollIntoView({ behavior: 'smooth' });
-          }, 50);
-        }}
-      />
-
-      <CategoryTabs
-        active={category}
-        onChange={setCategory}
-        sort={sort}
-        onSortChange={setSort}
-      />
-
-      <section id="product-grid" className="container-page mt-4 scroll-mt-6 sm:mt-6">
-        <div className="mb-3 flex items-center justify-between text-xs text-brand-ink-500">
-          <span>
-            {loading ? 'Đang tải...' : `${filtered.length} sản phẩm${search && ` cho "${search}"`}`}
-          </span>
-        </div>
-        <ProductGrid
-          products={filtered}
-          onOpen={setActive}
-          emptyText="Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé."
+      {show('hero') && (
+        <HeroSearch
+          value={search}
+          onChange={setSearch}
+          onDealClick={() => {
+            setCategory('deal');
+            setTimeout(() => {
+              document.getElementById('product-grid')?.scrollIntoView({ behavior: 'smooth' });
+            }, 50);
+          }}
         />
-      </section>
+      )}
 
-      <VideoReels />
-      <TopBestseller onOpen={setActive} products={products} />
-      <Collections />
+      {show('products') && (
+        <>
+          <CategoryTabs
+            active={category}
+            onChange={setCategory}
+            sort={sort}
+            onSortChange={setSort}
+          />
+
+          <section id="product-grid" className="container-page mt-4 scroll-mt-6 sm:mt-6">
+            <div className="mb-3 flex items-center justify-between text-xs text-brand-ink-500">
+              <span>
+                {loading ? 'Đang tải...' : `${filtered.length} sản phẩm${search && ` cho "${search}"`}`}
+              </span>
+            </div>
+            <ProductGrid
+              products={filtered}
+              onOpen={setActive}
+              emptyText="Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé."
+            />
+          </section>
+        </>
+      )}
+
+      {show('videoReels') && <VideoReels />}
+      {show('topBestseller') && <TopBestseller onOpen={setActive} products={products} />}
+      {show('collections') && <Collections />}
 
       <ProductModal product={active} onClose={() => setActive(null)} />
     </>

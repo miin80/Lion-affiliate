@@ -7,6 +7,10 @@ import MediaListEditor from '../components/admin/MediaListEditor';
 import TagsInput from '../components/admin/TagsInput';
 import ProductManager from '../components/admin/ProductManager';
 import SettingsManager from '../components/admin/SettingsManager';
+import VideoManager from '../components/admin/VideoManager';
+import CategoriesManager from '../components/admin/CategoriesManager';
+import CollectionsManager from '../components/admin/CollectionsManager';
+import BlogsManager from '../components/admin/BlogsManager';
 import { detectPlatform } from '../config/affiliate';
 import { importProductApi, saveProductApi } from '../services/api';
 import { logout, getUser } from '../services/auth';
@@ -180,30 +184,23 @@ export default function Admin() {
 
         {/* TAB NAV */}
         <div className="mt-5 -mx-4 flex gap-1 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:px-0">
-          <div className="inline-flex shrink-0 rounded-full bg-brand-ink-100 p-1">
-            <TabButton active={tab === 'import'} onClick={() => setTab('import')}>
-              📥 Import sản phẩm
-            </TabButton>
-            <TabButton active={tab === 'manage'} onClick={() => setTab('manage')}>
-              📦 Quản lý
-            </TabButton>
-            <TabButton active={tab === 'settings'} onClick={() => setTab('settings')}>
-              ⚙️ Cài đặt website
-            </TabButton>
+          <div className="inline-flex shrink-0 gap-1 rounded-full bg-brand-ink-100 p-1">
+            <TabButton active={tab === 'import'} onClick={() => setTab('import')}>📥 Import</TabButton>
+            <TabButton active={tab === 'manage'} onClick={() => setTab('manage')}>📦 Sản phẩm</TabButton>
+            <TabButton active={tab === 'videos'} onClick={() => setTab('videos')}>🎬 Video</TabButton>
+            <TabButton active={tab === 'collections'} onClick={() => setTab('collections')}>📚 Bộ sưu tập</TabButton>
+            <TabButton active={tab === 'categories'} onClick={() => setTab('categories')}>🏷 Danh mục</TabButton>
+            <TabButton active={tab === 'blogs'} onClick={() => setTab('blogs')}>📝 Blog</TabButton>
+            <TabButton active={tab === 'settings'} onClick={() => setTab('settings')}>⚙️ Cài đặt</TabButton>
           </div>
         </div>
 
-        {tab === 'manage' && (
-          <div className="mt-6">
-            <ProductManager />
-          </div>
-        )}
-
-        {tab === 'settings' && (
-          <div className="mt-6">
-            <SettingsManager />
-          </div>
-        )}
+        {tab === 'manage' && <div className="mt-6"><ProductManager /></div>}
+        {tab === 'videos' && <div className="mt-6"><VideoManager /></div>}
+        {tab === 'collections' && <div className="mt-6"><CollectionsManager /></div>}
+        {tab === 'categories' && <div className="mt-6"><CategoriesManager /></div>}
+        {tab === 'blogs' && <div className="mt-6"><BlogsManager /></div>}
+        {tab === 'settings' && <div className="mt-6"><SettingsManager /></div>}
 
         {tab === 'import' && (
         <>

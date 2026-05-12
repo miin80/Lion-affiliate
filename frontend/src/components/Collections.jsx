@@ -1,11 +1,14 @@
 import { motion } from 'framer-motion';
-import LazyImage from './LazyImage';
-import { COLLECTIONS } from '../data/collections';
 import { Link } from 'react-router-dom';
+import LazyImage from './LazyImage';
+import { COLLECTIONS as MOCK_COLLECTIONS } from '../data/collections';
+import { useResource } from '../hooks/useResource';
+import { collectionsApi } from '../services/resources';
 import { ArrowRight } from './icons';
 
 export default function Collections() {
-  if (!COLLECTIONS.length) return null;
+  const { items } = useResource(collectionsApi, MOCK_COLLECTIONS);
+  if (!items.length) return null;
   return (
     <section className="container-page mt-10 sm:mt-14">
       <div className="mb-4">
@@ -16,9 +19,9 @@ export default function Collections() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        {COLLECTIONS.map((c, i) => (
+        {items.map((c, i) => (
           <motion.div
-            key={c.slug}
+            key={c.slug || c.id}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -37,12 +40,8 @@ export default function Collections() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 p-3 text-white sm:p-4">
                 <div className="text-xl">{c.emoji}</div>
-                <h3 className="mt-0.5 line-clamp-1 text-sm font-extrabold sm:text-base">
-                  {c.title}
-                </h3>
-                <p className="mt-0.5 line-clamp-2 text-[10px] text-white/80 sm:text-xs">
-                  {c.desc}
-                </p>
+                <h3 className="mt-0.5 line-clamp-1 text-sm font-extrabold sm:text-base">{c.title}</h3>
+                <p className="mt-0.5 line-clamp-2 text-[10px] text-white/80 sm:text-xs">{c.desc}</p>
                 <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold text-brand-ink-900 sm:text-xs">
                   Xem bộ sưu tập <ArrowRight className="h-3 w-3" />
                 </div>
