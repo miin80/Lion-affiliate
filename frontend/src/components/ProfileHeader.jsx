@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { SITE } from '../config/site';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 import {
   TikTokIcon,
   FacebookIcon,
@@ -18,6 +18,11 @@ const SOCIAL_ICONS = {
 };
 
 export default function ProfileHeader() {
+  const { settings } = useSiteSettings();
+  const profile = settings.profile || {};
+  const socials = settings.socials || {};
+  const follow = settings.buttons?.follow || {};
+
   return (
     <section className="relative overflow-hidden">
       {/* Cover gradient backdrop */}
@@ -35,8 +40,8 @@ export default function ProfileHeader() {
           {/* Avatar */}
           <div className="relative">
             <img
-              src={SITE.avatar}
-              alt={SITE.name}
+              src={profile.avatar}
+              alt={profile.name}
               loading="eager"
               className="h-24 w-24 rounded-full object-cover shadow-avatar sm:h-28 sm:w-28"
             />
@@ -47,27 +52,39 @@ export default function ProfileHeader() {
 
           {/* Name */}
           <h1 className="mt-3 text-xl font-extrabold tracking-tight sm:text-2xl">
-            {SITE.name}
+            {profile.name}
           </h1>
 
           {/* Bio */}
-          <p className="mt-1 max-w-md px-2 text-sm text-brand-ink-500 sm:text-base">
-            {SITE.shortBio}
-          </p>
+          {profile.shortBio && (
+            <p className="mt-1 max-w-md px-2 text-sm text-brand-ink-500 sm:text-base">
+              {profile.shortBio}
+            </p>
+          )}
 
           {/* Stats */}
-          <div className="mt-3 flex items-center gap-5 text-xs">
-            <Stat number={SITE.stats.followers} label="Followers" />
-            <span className="h-3 w-px bg-brand-ink-200" />
-            <Stat number={SITE.stats.reviewed} label="Đã review" />
-            <span className="h-3 w-px bg-brand-ink-200" />
-            <Stat number={SITE.stats.happy} label="Hài lòng" />
-          </div>
+          {profile.stats && (
+            <div className="mt-3 flex items-center gap-5 text-xs">
+              {profile.stats.followers && (
+                <Stat number={profile.stats.followers} label="Followers" />
+              )}
+              {profile.stats.followers && profile.stats.reviewed && (
+                <span className="h-3 w-px bg-brand-ink-200" />
+              )}
+              {profile.stats.reviewed && (
+                <Stat number={profile.stats.reviewed} label="Đã review" />
+              )}
+              {profile.stats.reviewed && profile.stats.happy && (
+                <span className="h-3 w-px bg-brand-ink-200" />
+              )}
+              {profile.stats.happy && <Stat number={profile.stats.happy} label="Hài lòng" />}
+            </div>
+          )}
 
-          {/* Socials */}
+          {/* Socials — chỉ hiện icon nào có URL */}
           <div className="mt-4 flex items-center gap-2">
-            {Object.entries(SITE.socials)
-              .filter(([, url]) => url)
+            {Object.entries(socials)
+              .filter(([, url]) => url && url.trim())
               .map(([k, url]) => {
                 const cfg = SOCIAL_ICONS[k];
                 if (!cfg) return null;
@@ -87,15 +104,17 @@ export default function ProfileHeader() {
               })}
           </div>
 
-          {/* Follow CTA */}
-          <a
-            href={SITE.followUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-primary mt-5 px-7 py-3 text-sm"
-          >
-            ➕ Theo dõi mình
-          </a>
+          {/* Follow CTA — chỉ hiện nếu có URL */}
+          {follow.url && (
+            <a
+              href={follow.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary mt-5 px-7 py-3 text-sm"
+            >
+              {follow.text || 'Theo dõi mình'}
+            </a>
+          )}
         </motion.div>
       </div>
     </section>

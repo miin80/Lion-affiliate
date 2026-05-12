@@ -82,6 +82,21 @@ export function deleteProductApi(id) {
   return request(`/api/products/${id}`, { method: 'DELETE' });
 }
 
+/** Lấy site settings (profile, social, buttons, hero). */
+export async function fetchSiteSettings() {
+  const data = await request('/api/site-settings');
+  return data.settings;
+}
+
+/** Lưu (partial) site settings — backend deep merge. */
+export async function saveSiteSettingsApi(patch) {
+  const data = await request('/api/site-settings', {
+    method: 'PUT',
+    body: JSON.stringify(patch),
+  });
+  return data.settings;
+}
+
 /**
  * Fallback client khi backend không available — chỉ dùng để báo cho user
  * biết, KHÔNG dùng làm nguồn data thực.

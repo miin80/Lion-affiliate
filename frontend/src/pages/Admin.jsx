@@ -5,6 +5,7 @@ import ProductCard from '../components/ProductCard';
 import MediaListEditor from '../components/admin/MediaListEditor';
 import TagsInput from '../components/admin/TagsInput';
 import ProductManager from '../components/admin/ProductManager';
+import SettingsManager from '../components/admin/SettingsManager';
 import { detectPlatform } from '../config/affiliate';
 import { importProductApi, saveProductApi } from '../services/api';
 import { formatVND } from '../utils/format';
@@ -152,18 +153,29 @@ export default function Admin() {
         </p>
 
         {/* TAB NAV */}
-        <div className="mt-5 inline-flex rounded-full bg-brand-ink-100 p-1">
-          <TabButton active={tab === 'import'} onClick={() => setTab('import')}>
-            📥 Import sản phẩm
-          </TabButton>
-          <TabButton active={tab === 'manage'} onClick={() => setTab('manage')}>
-            📦 Quản lý sản phẩm
-          </TabButton>
+        <div className="mt-5 -mx-4 flex gap-1 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:px-0">
+          <div className="inline-flex shrink-0 rounded-full bg-brand-ink-100 p-1">
+            <TabButton active={tab === 'import'} onClick={() => setTab('import')}>
+              📥 Import sản phẩm
+            </TabButton>
+            <TabButton active={tab === 'manage'} onClick={() => setTab('manage')}>
+              📦 Quản lý
+            </TabButton>
+            <TabButton active={tab === 'settings'} onClick={() => setTab('settings')}>
+              ⚙️ Cài đặt website
+            </TabButton>
+          </div>
         </div>
 
         {tab === 'manage' && (
           <div className="mt-6">
             <ProductManager />
+          </div>
+        )}
+
+        {tab === 'settings' && (
+          <div className="mt-6">
+            <SettingsManager />
           </div>
         )}
 

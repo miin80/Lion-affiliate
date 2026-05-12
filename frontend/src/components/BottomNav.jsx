@@ -1,18 +1,21 @@
 import { NavLink } from 'react-router-dom';
 import { HomeIcon, GridIcon, VideoIcon, HeartIcon } from './icons';
-import { SITE } from '../config/site';
+import { useSiteSettings } from '../hooks/useSiteSettings';
 
 /**
  * Bottom navigation chỉ hiển thị trên mobile (<sm).
  * 4 tabs: Home, Products, Videos (TikTok external), Follow.
  */
 export default function BottomNav() {
+  const { settings } = useSiteSettings();
+  const tiktokUrl = settings.socials?.tiktok || '';
+  const followUrl = settings.buttons?.follow?.url || tiktokUrl;
   const items = [
     { to: '/', icon: HomeIcon, label: 'Home', end: true },
     { to: '/products', icon: GridIcon, label: 'Sản phẩm' },
-    { href: SITE.socials.tiktok || SITE.followUrl, icon: VideoIcon, label: 'Video', external: true },
-    { href: SITE.followUrl, icon: HeartIcon, label: 'Theo dõi', external: true },
-  ];
+    { href: tiktokUrl || followUrl, icon: VideoIcon, label: 'Video', external: true },
+    { href: followUrl, icon: HeartIcon, label: 'Theo dõi', external: true },
+  ].filter((it) => it.to || it.href);
 
   return (
     <nav

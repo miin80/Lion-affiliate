@@ -11,6 +11,7 @@ import {
   statusRoute,
   deleteRoute,
 } from './routes/products.js';
+import { getSettingsRoute, putSettingsRoute } from './routes/settings.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -44,6 +45,10 @@ app.put('/api/products/:id', (req, res) => {
 // Ẩn / hiện lại sản phẩm.
 app.patch('/api/products/:id/status', statusRoute);
 app.delete('/api/products/:id', deleteRoute);
+
+// Site settings (profile, social, buttons, hero).
+app.get('/api/site-settings', getSettingsRoute);
+app.put('/api/site-settings', putSettingsRoute);
 
 app.use((err, _req, res, _next) => {
   console.error('UNHANDLED:', err);
