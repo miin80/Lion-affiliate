@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { scrapeRoute } from './routes/scrape.js';
+import { importProductRoute } from './routes/importProduct.js';
 import {
   listRoute,
   getRoute,
@@ -10,7 +11,7 @@ import {
 } from './routes/products.js';
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 
 app.use(cors({ origin: CORS_ORIGIN === '*' ? true : CORS_ORIGIN.split(',') }));
@@ -22,6 +23,10 @@ app.get('/api/health', (_req, res) => {
 
 // Scrape metadata từ link gốc — KHÔNG lưu, chỉ trả về data.
 app.post('/api/scrape', scrapeRoute);
+
+// Import sản phẩm: nhận {sourceUrl, affiliateUrl} → scrape sourceUrl → trả preview
+// Đây là endpoint chuẩn theo spec. /api/scrape vẫn giữ cho compat.
+app.post('/api/import-product', importProductRoute);
 
 // CRUD sản phẩm (đã lưu sau khi admin import + chỉnh sửa).
 app.get('/api/products', listRoute);

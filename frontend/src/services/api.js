@@ -35,6 +35,18 @@ export function scrapeProduct(url) {
   });
 }
 
+/**
+ * Import sản phẩm — endpoint chuẩn theo spec.
+ * POST /api/import-product { sourceUrl, affiliateUrl }
+ * Trả về { ok, product, message, fallback }
+ */
+export function importProductApi(sourceUrl, affiliateUrl) {
+  return request('/api/import-product', {
+    method: 'POST',
+    body: JSON.stringify({ sourceUrl, affiliateUrl }),
+  });
+}
+
 /** Lấy danh sách sản phẩm đã lưu. */
 export async function fetchProducts() {
   const data = await request('/api/products');

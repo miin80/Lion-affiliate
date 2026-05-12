@@ -6,7 +6,7 @@ import MediaListEditor from '../components/admin/MediaListEditor';
 import TagsInput from '../components/admin/TagsInput';
 import { detectPlatform } from '../config/affiliate';
 import {
-  scrapeProduct,
+  importProductApi,
   fetchProducts,
   saveProductApi,
   deleteProductApi,
@@ -80,33 +80,42 @@ export default function Admin() {
       setError('Vui lòng dán link gốc sản phẩm (Source URL).');
       return;
     }
+    if (!draft.affiliateUrl.trim()) {
+      setError('Vui lòng dán link affiliate (link khách bấm mua).');
+      return;
+    }
     setImporting(true);
     try {
-      const data = await scrapeProduct(draft.sourceUrl.trim());
+      // POST /api/import-product { sourceUrl, affiliateUrl } → { ok, product, fallback }
+      const resp = await importProductApi(
+        draft.sourceUrl.trim(),
+        draft.affiliateUrl.trim()
+      );
+      const p = resp.product || {};
       const merged = {
         ...draft,
-        title: data.title || draft.title,
-        description: data.description || draft.description,
-        price: data.price || draft.price || '',
-        originalPrice: data.originalPrice || draft.originalPrice || '',
-        images: data.images?.length ? data.images : draft.images,
-        videos: data.video ? [data.video] : draft.videos,
+        title: p.title || draft.title,
+        description: p.description || draft.description,
+        price: p.price || draft.price || '',
+        originalPrice: p.originalPrice || draft.originalPrice || '',
+        images: p.images?.length ? p.images : draft.images,
+        videos: p.videos?.length ? p.videos : draft.videos,
       };
       setDraft(merged);
       setPreviewOpen(true);
 
       const missing = [];
-      if (!data.title) missing.push('tên');
-      if (!data.images?.length) missing.push('ảnh');
-      if (!data.price) missing.push('giá');
-      if (missing.length > 0 || data.ok === false) {
+      if (!p.title) missing.push('tên');
+      if (!p.images?.length) missing.push('ảnh');
+      if (!p.price) missing.push('giá');
+      if (missing.length > 0 || resp.fallback) {
         setWarning(
-          `Không tự lấy đủ dữ liệu: thiếu ${missing.join(', ') || 'một số trường'}. Vui lòng nhập / sửa thủ công bên dưới.`
+          `Không tự lấy đủ dữ liệu: thiếu ${missing.join(', ') || 'một số trường'}. Vui lòng nhập / sửa thủ công bên dưới — bạn vẫn lưu sản phẩm được.`
         );
       }
     } catch (err) {
       setError(
-        `Không kết nối được scraper backend (${err.message}). Bạn vẫn có thể nhập thông tin sản phẩm hoàn toàn thủ công bên dưới.`
+        `Không kết nối được backend (${err.message}). Bạn vẫn có thể nhập thông tin sản phẩm hoàn toàn thủ công bên dưới.`
       );
       setPreviewOpen(true);
     } finally {
