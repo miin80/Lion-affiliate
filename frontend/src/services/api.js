@@ -3,12 +3,18 @@
 //  Mặc định gọi `/api` (Vite dev proxy). Production: set VITE_API_URL.
 // ============================================================================
 
+import { authHeader, logout } from './auth';
+
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 async function request(path, opts = {}) {
   const url = `${API_BASE}${path}`;
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeader(),
+      ...(opts.headers || {}),
+    },
     ...opts,
   });
   const text = await res.text();
@@ -19,6 +25,8 @@ async function request(path, opts = {}) {
     /* not JSON */
   }
   if (!res.ok) {
+    // Token hết hạn / không hợp lệ → auto logout, frontend sẽ redirect tới /admin/login
+    if (res.status === 401) logout();
     const msg = data?.error || text || res.statusText;
     const err = new Error(msg);
     err.status = res.status;

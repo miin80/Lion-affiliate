@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Seo from '../components/Seo';
 import PlatformBadge from '../components/PlatformBadge';
 import ProductCard from '../components/ProductCard';
@@ -8,6 +9,7 @@ import ProductManager from '../components/admin/ProductManager';
 import SettingsManager from '../components/admin/SettingsManager';
 import { detectPlatform } from '../config/affiliate';
 import { importProductApi, saveProductApi } from '../services/api';
+import { logout, getUser } from '../services/auth';
 import { formatVND } from '../utils/format';
 import { CATEGORIES } from '../data/categories';
 
@@ -37,8 +39,15 @@ const BADGE_OPTIONS = [
 ];
 
 export default function Admin() {
-  const [tab, setTab] = useState('import'); // 'import' | 'manage'
+  const navigate = useNavigate();
+  const user = getUser();
+  const [tab, setTab] = useState('import'); // 'import' | 'manage' | 'settings'
   const [draft, setDraft] = useState(EMPTY);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/admin/login', { replace: true });
+  };
   const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -147,10 +156,27 @@ export default function Admin() {
     <>
       <Seo title="Quản trị" />
       <section className="container-page mt-6 sm:mt-10">
-        <h1 className="text-2xl font-extrabold sm:text-3xl">⚙️ Quản trị sản phẩm</h1>
-        <p className="mt-1 text-sm text-brand-ink-500">
-          Import sản phẩm affiliate từ link gốc, sau đó quản lý / ẩn / xoá tại đây.
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-extrabold sm:text-3xl">⚙️ Quản trị</h1>
+            <p className="mt-1 text-sm text-brand-ink-500">
+              Quản lý sản phẩm, cài đặt website — không cần sửa code.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {user && (
+              <span className="hidden text-xs text-brand-ink-500 sm:inline">
+                👤 {user.username}
+              </span>
+            )}
+            <button
+              onClick={handleLogout}
+              className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-red-600 ring-1 ring-red-200 hover:bg-red-50"
+            >
+              🚪 Đăng xuất
+            </button>
+          </div>
+        </div>
 
         {/* TAB NAV */}
         <div className="mt-5 -mx-4 flex gap-1 overflow-x-auto px-4 scrollbar-hide sm:mx-0 sm:px-0">
