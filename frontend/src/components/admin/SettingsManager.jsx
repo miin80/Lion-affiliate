@@ -323,7 +323,7 @@ export default function SettingsManager() {
         </div>
       </Section>
 
-      <div className="sticky bottom-20 z-10 flex justify-end gap-2 rounded-2xl bg-white/95 p-3 shadow-card ring-1 ring-brand-ink-100 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0">
+      <div className="sticky bottom-2 z-10 flex justify-end gap-2 rounded-2xl bg-white/95 p-3 shadow-card ring-1 ring-brand-ink-100 backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none sm:ring-0">
         <button
           onClick={handleSave}
           disabled={saving}

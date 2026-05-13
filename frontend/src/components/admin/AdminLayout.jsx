@@ -41,23 +41,16 @@ export default function AdminLayout({ activeTab, onTabChange, children }) {
 
   return (
     <div className="flex min-h-screen bg-brand-ink-50">
-      {/* MOBILE HEADER (sm:hidden) */}
-      <header className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-brand-ink-200 bg-white px-4 py-3 sm:hidden">
+      {/* MOBILE HEADER (sm:hidden) — gọn: chỉ hamburger + tiêu đề. Logout chuyển hẳn vào sidebar để tránh public-ish action ở góc trên. */}
+      <header className="fixed inset-x-0 top-0 z-30 flex items-center gap-3 border-b border-brand-ink-200 bg-white px-4 py-3 sm:hidden">
         <button
           onClick={() => setOpen(!open)}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-ink-100"
-          aria-label="Menu"
+          aria-label="Mở menu quản trị"
         >
           ☰
         </button>
         <div className="text-sm font-bold">⚙️ Quản trị</div>
-        <button
-          onClick={handleLogout}
-          className="text-xs font-semibold text-red-600"
-          title="Đăng xuất"
-        >
-          🚪
-        </button>
       </header>
 
       {/* SIDEBAR — desktop fixed, mobile drawer */}
