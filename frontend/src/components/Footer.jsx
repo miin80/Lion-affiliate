@@ -110,7 +110,23 @@ export default function Footer() {
         )}
 
         <div className="mt-6 flex flex-col items-center justify-between gap-2 text-xs text-brand-ink-400 sm:flex-row">
-          <div>© {year} {profile.name}. All rights reserved.</div>
+          <div className="flex items-center gap-3">
+            <span>© {year} {profile.name}. All rights reserved.</span>
+            {/* Admin entry point — subtle, opacity nhẹ, không thu hút user public.
+                Đã đăng nhập → "Dashboard". Chưa → "⚙" link tới /login. */}
+            <Link
+              to={isAuthenticated() ? '/admin' : '/login'}
+              className="flex items-center gap-1 text-brand-ink-300 opacity-60 transition hover:opacity-100 hover:text-brand-orange-500"
+              aria-label="Admin login"
+              title={isAuthenticated() ? 'Dashboard' : 'Admin login'}
+            >
+              {isAuthenticated() ? (
+                <span className="text-[11px] font-semibold">Dashboard →</span>
+              ) : (
+                <span className="text-base leading-none">⚙</span>
+              )}
+            </Link>
+          </div>
           <div>Made with ❤️ for content creators</div>
         </div>
       </div>

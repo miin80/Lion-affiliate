@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { isAuthenticated } from './services/auth';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
@@ -36,7 +37,9 @@ function Fallback() {
  */
 function AppShell() {
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
+  // /admin/* + /login đều là admin-context, không render public chrome.
+  const isAdminRoute =
+    location.pathname.startsWith('/admin') || location.pathname === '/login';
 
   return (
     <>
@@ -60,6 +63,14 @@ function AppShell() {
               <Route path="/terms" element={<LegalPage pageKey="terms" />} />
               <Route path="/affiliate-disclosure" element={<LegalPage pageKey="affiliate" />} />
               <Route path="/contact" element={<LegalPage pageKey="contact" />} />
+
+              {/* Shortcut /login — chuyên nghiệp hơn, dễ nhớ hơn /admin/login.
+                  Đã login → straight vào /admin. Chưa login → render Login.
+                  /admin/login giữ lại cho backward compat. */}
+              <Route
+                path="/login"
+                element={isAuthenticated() ? <Navigate to="/admin" replace /> : <Login />}
+              />
 
               {/* Auth & Admin — KHÔNG có public chrome bao quanh.
                   /admin/* để Admin có thể nested route từng sub-page riêng. */}
