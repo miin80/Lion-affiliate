@@ -12,6 +12,9 @@ const USE_PUPPETEER = String(process.env.USE_PUPPETEER ?? 'true') === 'true';
 
 const UA_DESKTOP =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0 Safari/537.36';
+const UA_MOBILE =
+  'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0 Mobile Safari/537.36';
+const UA_FACEBOOK = 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)';
 
 function parseIds(url) {
   // Pattern 1: /product/SHOPID/ITEMID
@@ -59,15 +62,19 @@ function titleFromUrl(url) {
   }
 }
 
-async function tryShopeeApi(url) {
+// Thử endpoint API. `pdp` = endpoint mới PDP (/api/v4/pdp/get_pc), `item` = endpoint cũ (/api/v4/item/get).
+async function tryShopeeApi(url, variant = 'item') {
   const ids = parseIds(url);
   if (!ids) {
     console.warn('[shopee] Cannot parse shopId/itemId from URL:', url);
     return null;
   }
   const host = new URL(url).host;
-  const apiUrl = `https://${host}/api/v4/item/get?itemid=${ids.itemId}&shopid=${ids.shopId}`;
-  console.log(`[shopee] API: ${apiUrl}`);
+  const apiUrl =
+    variant === 'pdp'
+      ? `https://${host}/api/v4/pdp/get_pc?item_id=${ids.itemId}&shop_id=${ids.shopId}&detail_level=0`
+      : `https://${host}/api/v4/item/get?itemid=${ids.itemId}&shopid=${ids.shopId}`;
+  console.log(`[shopee] API (${variant}): ${apiUrl}`);
   try {
     const { data } = await axios.get(apiUrl, {
       timeout: 15000,
@@ -81,9 +88,10 @@ async function tryShopeeApi(url) {
         Origin: `https://${host}`,
       },
     });
-    const item = data?.data;
+    // PDP endpoint nest data dưới data.data.item
+    const item = variant === 'pdp' ? data?.data?.item : data?.data;
     if (!item) {
-      console.warn('[shopee] API response không có data field');
+      console.warn(`[shopee] API (${variant}) response không có data field`);
       return null;
     }
 
@@ -140,27 +148,53 @@ async function tryShopeeApi(url) {
       category,
     };
   } catch (err) {
-    console.warn('[shopee] API call failed:', err.response?.status, err.message);
+    console.warn(`[shopee] API (${variant}) failed:`, err.response?.status, err.message);
     return null;
   }
 }
 
 /**
- * Fallback: fetch HTML page và parse OG meta + __INITIAL_STATE__ + JSON-LD.
- * Hỗ trợ khi API trả thiếu / bị chặn.
+ * Fallback: fetch HTML page với User-Agent giả Facebook crawler.
+ * Shopee serve OG meta đầy đủ cho FB crawler để link share đẹp → bypass anti-bot.
+ * Nếu UA Facebook không work, thử UA mobile Chrome (m.shopee.vn).
  */
 async function tryShopeeHtml(url) {
-  console.log(`[shopee-html] Fetch: ${url}`);
+  // Try 2 UAs theo thứ tự: Facebook bot → mobile Chrome
+  const attempts = [
+    { ua: UA_FACEBOOK, label: 'fb-bot' },
+    { ua: UA_MOBILE, label: 'mobile-chrome' },
+  ];
+  let html = null;
+  let usedLabel = null;
+  for (const a of attempts) {
+    try {
+      console.log(`[shopee-html] Fetch as ${a.label}: ${url}`);
+      const res = await axios.get(url, {
+        timeout: 15000,
+        headers: {
+          'User-Agent': a.ua,
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+        },
+        maxRedirects: 5,
+        validateStatus: () => true,
+      });
+      if (res.status === 200 && typeof res.data === 'string' && res.data.length > 5000) {
+        html = res.data;
+        usedLabel = a.label;
+        // Sớm chấp nhận nếu HTML có og:title hoặc title — đỡ thử tiếp UA khác
+        if (html.includes('og:title') || /<title>[^<]+<\/title>/i.test(html)) break;
+      } else {
+        console.warn(`[shopee-html] ${a.label} status=${res.status} length=${res.data?.length}`);
+      }
+    } catch (err) {
+      console.warn(`[shopee-html] ${a.label} failed:`, err.message);
+    }
+  }
+  if (!html) return null;
+  console.log(`[shopee-html] Using HTML from ${usedLabel} (${html.length} chars)`);
+
   try {
-    const { data: html } = await axios.get(url, {
-      timeout: 15000,
-      headers: {
-        'User-Agent': UA_DESKTOP,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
-      },
-      maxRedirects: 5,
-    });
     const $ = cheerio.load(html);
 
     // 1. Open Graph
@@ -196,7 +230,13 @@ async function tryShopeeHtml(url) {
     });
 
     const images = [og.image, ...ldImages].filter(Boolean);
-    const title = og.title || docTitle || '';
+    // Cleanup title: bỏ suffix "| Shopee Việt Nam" / "- Shopee" / "Mua ngay tại Shopee"
+    const cleanTitle = (t) =>
+      (t || '')
+        .replace(/\s*[|·-]\s*Shopee.*$/i, '')
+        .replace(/\s*Mua ngay tại Shopee.*$/i, '')
+        .trim();
+    const title = cleanTitle(og.title) || cleanTitle(docTitle) || '';
 
     return {
       title,
@@ -206,7 +246,7 @@ async function tryShopeeHtml(url) {
       rating: ldRating,
     };
   } catch (err) {
-    console.warn('[shopee-html] Fetch failed:', err.response?.status, err.message);
+    console.warn('[shopee-html] Parse failed:', err.message);
     return null;
   }
 }
@@ -247,24 +287,26 @@ function isIncomplete(data) {
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function scrapeShopee(url) {
-  // 1. Shopee internal API — retry tới 3 lần vì Shopee chặn chập chờn.
-  // Lần 1 fail → đợi 1.5s → lần 2 → đợi 2.5s → lần 3.
-  let apiData = await tryShopeeApi(url);
+  // 1. Thử endpoint /api/v4/item/get (cũ, hay bị 403 nhất)
+  let apiData = await tryShopeeApi(url, 'item');
+
+  // 2. Nếu fail → thử endpoint /api/v4/pdp/get_pc (mới, đôi khi vẫn mở)
   if (isIncomplete(apiData)) {
-    console.log('[shopee] API attempt 1 failed/incomplete, retrying after 1.5s...');
-    await wait(1500);
-    apiData = await tryShopeeApi(url);
-  }
-  if (isIncomplete(apiData)) {
-    console.log('[shopee] API attempt 2 failed/incomplete, retrying after 2.5s...');
-    await wait(2500);
-    apiData = await tryShopeeApi(url);
+    console.log('[shopee] item endpoint incomplete, trying PDP endpoint...');
+    apiData = await tryShopeeApi(url, 'pdp');
   }
 
-  // 2. Nếu API vẫn thiếu title/ảnh → fallback HTML
+  // 3. Vẫn fail → đợi 1.5s rồi retry item endpoint (chống chập chờn)
+  if (isIncomplete(apiData)) {
+    console.log('[shopee] PDP also failed, waiting 1.5s then retrying item...');
+    await wait(1500);
+    apiData = await tryShopeeApi(url, 'item');
+  }
+
+  // 4. Vẫn fail → fallback HTML với UA Facebook bot
   let htmlData = null;
   if (isIncomplete(apiData)) {
-    console.log('[shopee] API exhausted 3 attempts, trying HTML fallback...');
+    console.log('[shopee] All API attempts failed, trying HTML with FB bot UA...');
     htmlData = await tryShopeeHtml(url);
   }
 

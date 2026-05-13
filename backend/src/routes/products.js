@@ -172,9 +172,24 @@ export async function sheetSyncRoute(req, res) {
           return Number.isFinite(m) && m > 0 ? m : null;
         };
 
+        // Title fallback chain: row → scraped → slug URL → placeholder "(SP cần sửa)"
+        function titleFromUrlSlug(u) {
+          try {
+            const path = decodeURIComponent(new URL(u).pathname);
+            const m = path.match(/\/([^/]+)-i\.\d+\.\d+/i);
+            if (m) return m[1].replace(/-+/g, ' ').trim();
+          } catch {}
+          return null;
+        }
+        const titleFallback =
+          (row.title && String(row.title).trim()) ||
+          scraped?.title ||
+          titleFromUrlSlug(sourceUrl) ||
+          `(SP cần sửa) ${sourceUrl.split('/').pop() || 'unknown'}`;
+
         const merged = {
           id: row.id || undefined,
-          title: (row.title && String(row.title).trim()) || scraped?.title || '',
+          title: titleFallback,
           sourceUrl,
           affiliateUrl,
           category: row.category || 'gia-dung',
@@ -199,9 +214,7 @@ export async function sheetSyncRoute(req, res) {
           platform: scraped?.platform || row.platform || 'other',
         };
 
-        if (!merged.title) {
-          throw new Error('Không có title — scraper không lấy được và user chưa nhập.');
-        }
+        // Title đã có fallback chain → luôn != rỗng, không reject row nữa.
         if (!merged.affiliateUrl) {
           throw new Error('Thiếu affiliateUrl (link mua).');
         }
@@ -210,6 +223,8 @@ export async function sheetSyncRoute(req, res) {
         result.ok = true;
         result.id = saved.id;
         result.scrapeOk = !!scraped?.title;
+        // Flag để Apps Script biết row này cần admin sửa tay
+        result.needsManualEdit = !scraped?.title && !(row.title && String(row.title).trim());
         // Trả lại đủ field để Apps Script writeback vào Sheet
         result.product = {
           id: saved.id,
