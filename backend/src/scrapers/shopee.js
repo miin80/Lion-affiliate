@@ -171,24 +171,51 @@ function imageUrlFromId(id) {
  * Note: Shopee deliberately strip `product_price.price` / `historical_sold` khỏi
  * BFF response public — 2 field này admin phải nhập tay.
  */
+// Multiple mobile UAs để retry — Shopee đôi khi serve khác cho UA khác.
+const UA_MOBILES = [
+  'Mozilla/5.0 (Linux; Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0 Mobile Safari/537.36',
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0 Mobile Safari/537.36',
+];
+
+async function fetchMobileHtml(url) {
+  for (let i = 0; i < UA_MOBILES.length; i++) {
+    const ua = UA_MOBILES[i];
+    try {
+      const res = await axios.get(url, {
+        timeout: 20000,
+        headers: {
+          'User-Agent': ua,
+          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+          Referer: 'https://shopee.vn/',
+        },
+        maxRedirects: 5,
+        validateStatus: () => true,
+      });
+      if (
+        res.status === 200 &&
+        typeof res.data === 'string' &&
+        res.data.includes('mfe-initial-data')
+      ) {
+        console.log(`[shopee-mobile-bff] UA #${i} success, html=${res.data.length}`);
+        return res.data;
+      }
+      console.warn(
+        `[shopee-mobile-bff] UA #${i} (${ua.includes('iPhone') ? 'iPhone' : ua.includes('Pixel') ? 'Pixel' : 'Samsung'}) status=${res.status} len=${res.data?.length || 0} has-mfe=${typeof res.data === 'string' && res.data.includes('mfe-initial-data')}`
+      );
+    } catch (err) {
+      console.warn(`[shopee-mobile-bff] UA #${i} error:`, err.message);
+    }
+  }
+  return null;
+}
+
 async function tryShopeeMobileBff(url) {
   console.log(`[shopee-mobile-bff] Fetch: ${url}`);
   try {
-    const res = await axios.get(url, {
-      timeout: 20000,
-      headers: {
-        'User-Agent': UA_MOBILE,
-        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
-      },
-      maxRedirects: 5,
-      validateStatus: () => true,
-    });
-    if (res.status !== 200 || typeof res.data !== 'string') {
-      console.warn(`[shopee-mobile-bff] status=${res.status}`);
-      return null;
-    }
-    const html = res.data;
+    const html = await fetchMobileHtml(url);
+    if (!html) return null;
     const scriptMatch = html.match(
       /<script[^>]*type="text\/mfe-initial-data"[^>]*>([\s\S]*?)<\/script>/
     );
@@ -312,9 +339,33 @@ async function tryShopeeMobileBff(url) {
   }
 }
 
+// Phân biệt ảnh promo/banner vs ảnh sản phẩm thật.
+// Shopee đặt og:image = banner marketing (file/promo-dim-..., voucher graphic) chứ không phải
+// ảnh chai/hộp sản phẩm. Filter cứng để không cho fallback ra ảnh banner.
+function isPromoImageUrl(url) {
+  if (!url) return false;
+  const s = url.toLowerCase();
+  return /promo-dim|sourcebanner|banner|voucher|coupon|ssfe|cms-banner/i.test(s);
+}
+
+// Phát hiện Shopee SEO blurb auto-gen ("Mua X giá tốt. Mua hàng qua mạng uy tín... XEM NGAY!")
+// Đây KHÔNG phải mô tả thật của sản phẩm — bỏ qua.
+function isSeoBlurb(text) {
+  if (!text) return false;
+  const s = text.trim();
+  // Mẫu: "Mua <title> giá tốt. Mua hàng qua mạng uy tín, tiện lợi. Shopee đảm bảo..."
+  return (
+    /^Mua\s.+giá tốt\.\s*Mua hàng qua mạng/i.test(s) ||
+    /Shopee đảm bảo nhận hàng/i.test(s) ||
+    /XEM NGAY!?\s*$/i.test(s)
+  );
+}
+
 /**
  * Open Graph fallback — chỉ dùng khi mobile BFF không work.
- * UA Facebook crawler → Shopee thường serve OG meta đầy đủ.
+ * UA Facebook crawler → Shopee serve OG meta nhưng KHÔNG dùng cho cover (vì Shopee
+ * trỏ og:image về banner marketing) cũng KHÔNG dùng cho description (SEO blurb).
+ * Chỉ rút được title từ đây.
  */
 async function tryShopeeHtml(url) {
   console.log(`[shopee-html] Fetch as fb-bot: ${url}`);
@@ -341,8 +392,14 @@ async function tryShopeeHtml(url) {
     const cleanTitle = (t) =>
       (t || '').replace(/\s*[|·-]\s*Shopee.*$/i, '').replace(/\s*Mua ngay tại Shopee.*$/i, '').trim();
     const title = cleanTitle(og.title) || cleanTitle(docTitle) || '';
-    const images = og.image ? [og.image] : [];
-    return { title, description: og.description, images };
+    // KHÔNG dùng og:image nếu là promo banner (Shopee đa số trả banner làm og:image).
+    const images = og.image && !isPromoImageUrl(og.image) ? [og.image] : [];
+    // KHÔNG dùng og:description nếu là SEO blurb auto-gen.
+    const description = isSeoBlurb(og.description) ? '' : (og.description || '');
+    console.log(
+      `[shopee-html] og.title="${title?.slice(0, 40)}" image=${og.image ? (isPromoImageUrl(og.image) ? 'PROMO(skip)' : 'real') : 'none'} desc=${isSeoBlurb(og.description) ? 'SEO-blurb(skip)' : 'kept'}`
+    );
+    return { title, description, images };
   } catch (err) {
     console.warn('[shopee-html] failed:', err.message);
     return null;
