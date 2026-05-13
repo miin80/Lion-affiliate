@@ -100,26 +100,92 @@ export default function BookmarkletGenerator() {
     }
   };
 
+  const userscriptUrl = `${ADMIN_BASE}/lion-import.user.js`;
+
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-extrabold sm:text-3xl">📌 Bookmarklet — 1-click auto-import</h1>
+        <h1 className="text-2xl font-extrabold sm:text-3xl">📌 Auto-import từ Shopee</h1>
         <p className="mt-1 text-sm text-brand-ink-500">
           Bypass Shopee anti-bot bằng cách chạy script trong tab Shopee thật của bạn (có session
-          + cookies). Không cần Puppeteer / proxy / dán tay giá.
+          + cookies). 2 cách: <strong>Tampermonkey (recommend)</strong> hoặc Bookmarklet.
         </p>
       </div>
 
-      <div className="rounded-2xl bg-blue-50 p-4 ring-1 ring-blue-200">
-        <div className="font-bold text-blue-800">⚡ Workflow</div>
-        <ol className="ml-5 mt-2 list-decimal space-y-1 text-sm text-blue-900">
-          <li>Kéo nút <strong>"📌 Lion Import"</strong> bên dưới vào <strong>thanh Bookmark</strong> của Chrome (Ctrl+Shift+B để hiện).</li>
-          <li>Mở Shopee → vào 1 sản phẩm bất kỳ (đợi giá hiển thị xong).</li>
-          <li>Click <strong>"📌 Lion Import"</strong> trên thanh bookmark.</li>
-          <li>Popup hỏi <em>"Dán Affiliate URL"</em> → paste link affiliate của bạn (hoặc Enter bỏ qua).</li>
-          <li>Tab mới mở với form admin đã auto-fill <strong>title + giá + ảnh gallery + discount + rating</strong>.</li>
-          <li>Review → bấm <strong>💾 Lưu</strong>.</li>
+      {/* ============ TAMPERMONKEY (recommend) ============ */}
+      <div className="rounded-3xl bg-gradient-to-br from-green-50 to-emerald-50 p-5 shadow-card ring-1 ring-green-200">
+        <div className="flex items-start gap-3">
+          <div className="rounded-full bg-green-500 px-2.5 py-1 text-[11px] font-bold text-white">
+            RECOMMEND
+          </div>
+          <div>
+            <h2 className="text-lg font-extrabold">⚡ Cách 1 — Tampermonkey userscript (reliable)</h2>
+            <p className="mt-1 text-sm text-brand-ink-700">
+              Bookmarklet hay bị Shopee chặn CSP → không hoạt động. Tampermonkey là extension
+              chính thức Chrome — Shopee KHÔNG thể chặn. Sau khi cài, nút <strong>"📌 Lion Import"</strong> sẽ
+              hiện ngay trên trang Shopee, click 1 cái là xong.
+            </p>
+          </div>
+        </div>
+
+        <ol className="ml-5 mt-4 list-decimal space-y-2 text-sm text-brand-ink-800">
+          <li>
+            Cài <strong>Tampermonkey</strong> extension miễn phí:{' '}
+            <a
+              href="https://chromewebstore.google.com/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-green-700 underline hover:text-green-900"
+            >
+              Chrome Web Store →
+            </a>
+          </li>
+          <li>
+            Click vào link install script bên dưới — Tampermonkey tự nhận diện + hỏi "Install":
+            <div className="mt-2">
+              <a
+                href={userscriptUrl}
+                className="inline-flex items-center gap-2 rounded-full bg-green-600 px-5 py-2.5 text-sm font-bold text-white shadow-cta hover:bg-green-700"
+              >
+                📥 Install Lion Import Userscript
+              </a>
+              <p className="mt-1 text-[11px] text-brand-ink-500">
+                URL: <code className="rounded bg-white px-1.5 py-0.5 text-[10px]">{userscriptUrl}</code>
+              </p>
+            </div>
+          </li>
+          <li>Bấm <strong>Install</strong> trong popup Tampermonkey.</li>
+          <li>
+            Vào Shopee với link sản phẩm bất kỳ → đợi giá load (~2s) → <strong>nút "📌 Lion Import" hiện ở góc phải dưới màn hình</strong>.
+          </li>
+          <li>
+            Click nút đó → popup preview data → dán Affiliate URL → OK → tab admin mới mở với
+            <strong> form auto-fill 100% (kể cả giá!)</strong>.
+          </li>
+          <li>Review → bấm Save → xong.</li>
         </ol>
+
+        <div className="mt-4 rounded-2xl bg-white p-3 text-xs text-brand-ink-700 ring-1 ring-green-200">
+          <strong>✅ Tại sao Tampermonkey work mà bookmarklet không:</strong> Bookmarklet dùng
+          <code className="mx-1 rounded bg-brand-ink-100 px-1.5">javascript:</code> URL, Shopee
+          có CSP <code className="mx-1 rounded bg-brand-ink-100 px-1.5">script-src 'self'</code>
+          → chặn. Tampermonkey chạy như extension → quyền cao hơn, bypass mọi CSP.
+        </div>
+      </div>
+
+      {/* ============ BOOKMARKLET (fallback) ============ */}
+      <details className="rounded-3xl bg-white p-5 shadow-card ring-1 ring-brand-ink-100">
+        <summary className="cursor-pointer text-base font-bold">
+          📎 Cách 2 — Bookmarklet (fallback, có thể bị Shopee chặn CSP)
+        </summary>
+        <p className="mt-3 text-sm text-brand-ink-500">
+          Chỉ dùng nếu không cài được Tampermonkey. Cảnh báo: hay bị Shopee chặn — click không
+          hiện gì cả.
+        </p>
+      </details>
+
+      <div className="rounded-2xl bg-amber-50 p-3 text-xs text-amber-800 ring-1 ring-amber-200">
+        ⚠️ Bookmarklet thường bị Shopee chặn (CSP). Khuyên dùng Tampermonkey ở trên.
       </div>
 
       <div className="rounded-3xl bg-white p-5 shadow-card ring-1 ring-brand-ink-100">
@@ -162,11 +228,13 @@ export default function BookmarkletGenerator() {
       </div>
 
       <div className="rounded-2xl bg-amber-50 p-3 ring-1 ring-amber-200">
-        <div className="text-xs font-bold text-amber-800">💡 Tại sao bookmarklet?</div>
+        <div className="text-xs font-bold text-amber-800">💡 Tại sao cần script?</div>
         <p className="mt-1 text-xs text-amber-900">
-          Shopee chặn cứng API server-side (item/get, pdp/get_pc → 403) + redirect Puppeteer sang
-          captcha. <strong>Browser của bạn lấy được giá</strong> vì có session cookies + JS đã chạy.
-          Bookmarklet chạy CHÍNH TRONG browser bạn — không bị chặn — đọc DOM xong gửi qua admin.
+          Shopee chặn cứng API server-side (item/get, pdp/get_pc → 403) + chặn Puppeteer
+          (redirect /verify/traffic/error) + chặn bookmarklet (CSP).
+          Chỉ có <strong>browser thật của bạn</strong> lấy được giá vì có session cookies +
+          fingerprint thật. <strong>Tampermonkey userscript</strong> chạy trong context đó →
+          reliable 100%.
         </p>
       </div>
     </div>
