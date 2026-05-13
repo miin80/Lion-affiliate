@@ -6,6 +6,7 @@ import BottomNav from './components/BottomNav';
 import StickyCTA from './components/StickyCTA';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import TrackingScripts from './components/TrackingScripts';
 
 // Code-splitting để tải nhanh hơn
 const Home = lazy(() => import('./pages/Home'));
@@ -17,6 +18,7 @@ const BlogPost = lazy(() => import('./pages/BlogPost'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Login = lazy(() => import('./pages/Login'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 
 function Fallback() {
   return (
@@ -39,6 +41,9 @@ function AppShell() {
   return (
     <>
       <ScrollToTop />
+      {/* Tracking pixels — chỉ inject khi admin set ID trong Settings.
+          Áp dụng cho cả public + admin để theo dõi conversion từ cả 2 phía. */}
+      <TrackingScripts />
       <main className={`min-h-[60vh] ${isAdminRoute ? '' : 'pb-24 sm:pb-0'}`}>
         <ErrorBoundary>
           <Suspense fallback={<Fallback />}>
@@ -49,6 +54,12 @@ function AppShell() {
               <Route path="/collection/:slug" element={<Collection />} />
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
+
+              {/* Legal / chính sách */}
+              <Route path="/privacy-policy" element={<LegalPage pageKey="privacy" />} />
+              <Route path="/terms" element={<LegalPage pageKey="terms" />} />
+              <Route path="/affiliate-disclosure" element={<LegalPage pageKey="affiliate" />} />
+              <Route path="/contact" element={<LegalPage pageKey="contact" />} />
 
               {/* Auth & Admin — KHÔNG có public chrome bao quanh.
                   /admin/* để Admin có thể nested route từng sub-page riêng. */}

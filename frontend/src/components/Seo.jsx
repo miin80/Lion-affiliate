@@ -19,11 +19,16 @@ export default function Seo({
 
   const finalTitle = title ? `${title} — ${profileName}` : SITE.fullName;
   const finalDesc = description || defaultDesc;
-  // OG image: ưu tiên prop, fallback avatar (nếu là URL https), cuối cùng /og-cover.jpg
+  // OG image: ưu tiên prop → settings.branding.ogImage → avatar (nếu là URL https) → /og-cover.jpg
+  const brandingOg = settings?.branding?.ogImage;
   const avatarUrl = settings?.profile?.avatar;
   const isHttpsAvatar = typeof avatarUrl === 'string' && avatarUrl.startsWith('http');
-  const finalImage = image || (isHttpsAvatar ? avatarUrl : `${SITE.url}/og-cover.jpg`);
+  const finalImage =
+    image ||
+    (brandingOg && brandingOg.startsWith('http') ? brandingOg : null) ||
+    (isHttpsAvatar ? avatarUrl : `${SITE.url}/og-cover.jpg`);
   const finalUrl = url || (typeof window !== 'undefined' ? window.location.href : SITE.url);
+  const favicon = settings?.branding?.favicon;
 
   return (
     <Helmet>
@@ -38,7 +43,7 @@ export default function Seo({
       <meta property="og:type" content={type} />
       <meta property="og:site_name" content={profileName} />
       <meta property="og:locale" content="vi_VN" />
-      {/* Twitter */}
+      {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={finalTitle} />
       <meta name="twitter:description" content={finalDesc} />
@@ -47,6 +52,8 @@ export default function Seo({
       <link rel="canonical" href={finalUrl} />
       {/* Theme color */}
       <meta name="theme-color" content="#f97316" />
+      {/* Favicon dynamic — chỉ override khi admin set */}
+      {favicon && <link rel="icon" type="image/png" href={favicon} />}
     </Helmet>
   );
 }

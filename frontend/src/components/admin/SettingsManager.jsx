@@ -297,6 +297,152 @@ export default function SettingsManager() {
       </Section>
 
       {/* SECTIONS VISIBILITY */}
+      <Section title="🎨 Branding" desc="Favicon, logo, ảnh OG share. Để trống = dùng mặc định.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Favicon URL" hint="Icon nhỏ trên tab browser. PNG/SVG ≤ 64x64.">
+            <input
+              className="input-base"
+              value={settings.branding?.favicon || ''}
+              onChange={(e) => update('branding.favicon', e.target.value)}
+              placeholder="https://.../favicon.png"
+            />
+          </Field>
+          <Field label="Logo URL" hint="Logo hiển thị trên header/login.">
+            <input
+              className="input-base"
+              value={settings.branding?.logo || ''}
+              onChange={(e) => update('branding.logo', e.target.value)}
+              placeholder="https://.../logo.png"
+            />
+          </Field>
+          <Field label="Open Graph image URL" hint="Ảnh preview khi share link lên FB/Zalo. 1200×630px.">
+            <input
+              className="input-base"
+              value={settings.branding?.ogImage || ''}
+              onChange={(e) => update('branding.ogImage', e.target.value)}
+              placeholder="https://.../og-cover.jpg"
+            />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="📈 Tracking & Analytics" desc="Để trống = không inject script. Frontend tự động chèn khi có ID.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Google Analytics ID" hint="Định dạng G-XXXXXXXXXX">
+            <input
+              className="input-base"
+              value={settings.tracking?.googleAnalyticsId || ''}
+              onChange={(e) => update('tracking.googleAnalyticsId', e.target.value)}
+              placeholder="G-XXXXXXXXXX"
+            />
+          </Field>
+          <Field label="Microsoft Clarity ID" hint="VD: abcd1234ef">
+            <input
+              className="input-base"
+              value={settings.tracking?.clarityId || ''}
+              onChange={(e) => update('tracking.clarityId', e.target.value)}
+              placeholder="abcd1234ef"
+            />
+          </Field>
+          <Field label="Facebook Pixel ID" hint="VD: 123456789012345">
+            <input
+              className="input-base"
+              value={settings.tracking?.facebookPixelId || ''}
+              onChange={(e) => update('tracking.facebookPixelId', e.target.value)}
+              placeholder="123456789012345"
+            />
+          </Field>
+          <Field label="TikTok Pixel ID" hint="VD: CXXXXXXXXX">
+            <input
+              className="input-base"
+              value={settings.tracking?.tiktokPixelId || ''}
+              onChange={(e) => update('tracking.tiktokPixelId', e.target.value)}
+              placeholder="CXXXXXXXXX"
+            />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="📞 Thông tin liên hệ" desc="Hiển thị trong /contact + footer. Bỏ trống cái nào không có.">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Email liên hệ">
+            <input
+              type="email"
+              className="input-base"
+              value={settings.contact?.email || settings.email || ''}
+              onChange={(e) => update('contact.email', e.target.value)}
+              placeholder="contact@example.com"
+            />
+          </Field>
+          <Field label="Số điện thoại / Zalo">
+            <input
+              className="input-base"
+              value={settings.contact?.phone || ''}
+              onChange={(e) => update('contact.phone', e.target.value)}
+              placeholder="0987654321"
+            />
+          </Field>
+          <Field label="Facebook URL">
+            <input
+              className="input-base"
+              value={settings.contact?.facebook || ''}
+              onChange={(e) => update('contact.facebook', e.target.value)}
+              placeholder="https://www.facebook.com/..."
+            />
+          </Field>
+          <Field label="Zalo URL hoặc số điện thoại">
+            <input
+              className="input-base"
+              value={settings.contact?.zalo || ''}
+              onChange={(e) => update('contact.zalo', e.target.value)}
+              placeholder="0987654321 hoặc https://zalo.me/..."
+            />
+          </Field>
+          <Field label="Địa chỉ (tuỳ chọn)">
+            <input
+              className="input-base"
+              value={settings.contact?.address || ''}
+              onChange={(e) => update('contact.address', e.target.value)}
+              placeholder="HCM / HN..."
+            />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="📜 Trang chính sách (Pháp lý)" desc="Markdown đơn giản: ## heading, **bold**, [text](url). Bỏ trống = dùng nội dung mặc định.">
+        <Field label="Affiliate Disclosure (tiết lộ liên kết tiếp thị)">
+          <textarea
+            rows={4}
+            className="input-base resize-y"
+            value={settings.legal?.affiliateDisclosure || settings.disclosure || ''}
+            onChange={(e) => update('legal.affiliateDisclosure', e.target.value)}
+            placeholder="Một số liên kết là affiliate. Khi bạn mua qua đây, mình nhận hoa hồng nhỏ — không phụ thu của bạn."
+          />
+        </Field>
+        <div className="mt-3">
+          <Field label="Chính sách bảo mật (Privacy Policy)">
+            <textarea
+              rows={6}
+              className="input-base resize-y"
+              value={settings.legal?.privacyPolicy || ''}
+              onChange={(e) => update('legal.privacyPolicy', e.target.value)}
+              placeholder="## Thông tin chúng tôi thu thập..."
+            />
+          </Field>
+        </div>
+        <div className="mt-3">
+          <Field label="Điều khoản sử dụng (Terms)">
+            <textarea
+              rows={6}
+              className="input-base resize-y"
+              value={settings.legal?.terms || ''}
+              onChange={(e) => update('legal.terms', e.target.value)}
+              placeholder="## 1. Nội dung..."
+            />
+          </Field>
+        </div>
+      </Section>
+
       <Section title="📐 Bật/tắt section trang chủ" desc="Tắt section nào sẽ ẩn hoàn toàn khỏi trang chủ">
         <div className="grid gap-2 sm:grid-cols-2">
           {[

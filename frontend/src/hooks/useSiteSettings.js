@@ -36,6 +36,10 @@ export const DEFAULT_SITE_SETTINGS = {
     collections: true,
     blog: true,
   },
+  branding: { favicon: '', logo: '', ogImage: '' },
+  tracking: { googleAnalyticsId: '', clarityId: '', facebookPixelId: '', tiktokPixelId: '' },
+  legal: { privacyPolicy: '', terms: '', affiliateDisclosure: '' },
+  contact: { email: '', phone: '', facebook: '', zalo: '', address: '' },
 };
 
 const CACHE_KEY = 'lion_affiliate_site_settings_v2';

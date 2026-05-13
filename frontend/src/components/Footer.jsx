@@ -25,7 +25,7 @@ export default function Footer() {
   return (
     <footer className="mt-16 border-t border-brand-ink-100 bg-brand-ink-50 pb-24 sm:pb-10">
       <div className="container-page py-10">
-        <div className="grid gap-8 sm:grid-cols-3">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
               <img
@@ -53,9 +53,21 @@ export default function Footer() {
               <li><Link to="/" className="hover:text-brand-orange-600">Trang chủ</Link></li>
               <li><Link to="/products" className="hover:text-brand-orange-600">Tất cả sản phẩm</Link></li>
               <li><Link to="/blog" className="hover:text-brand-orange-600">Blog Review</Link></li>
+              <li><Link to="/contact" className="hover:text-brand-orange-600">Liên hệ</Link></li>
               {isAuthenticated() && (
                 <li><Link to="/admin" className="hover:text-brand-orange-600">Quản trị</Link></li>
               )}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-sm font-bold uppercase tracking-wide text-brand-ink-700">
+              Pháp lý
+            </h4>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li><Link to="/affiliate-disclosure" className="hover:text-brand-orange-600">Tiết lộ liên kết tiếp thị</Link></li>
+              <li><Link to="/privacy-policy" className="hover:text-brand-orange-600">Chính sách bảo mật</Link></li>
+              <li><Link to="/terms" className="hover:text-brand-orange-600">Điều khoản sử dụng</Link></li>
             </ul>
           </div>
 

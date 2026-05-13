@@ -57,6 +57,33 @@ export const DEFAULT_SETTINGS = {
     collections: true,
     blog: true,
   },
+  // Branding — admin chỉnh trong Cài đặt website → tab Branding.
+  branding: {
+    favicon: '',   // URL favicon, vd https://.../favicon.png. Empty → giữ favicon mặc định.
+    logo: '',      // URL logo dùng cho header / login page nếu admin set.
+    ogImage: '',   // URL ảnh OG mặc định cho social share. Empty → fallback profile.avatar.
+  },
+  // Tracking IDs — frontend tự inject script khi có giá trị. Empty → không inject.
+  tracking: {
+    googleAnalyticsId: '',  // vd 'G-XXXXXXXXXX'
+    clarityId: '',          // vd 'abcd1234ef'
+    facebookPixelId: '',    // vd '123456789012345'
+    tiktokPixelId: '',      // vd 'CXXXXXXXXX'
+  },
+  // Trang chính sách (legal) — admin nhập markdown đơn giản. Empty = dùng default.
+  legal: {
+    privacyPolicy: '',         // markdown
+    terms: '',                 // markdown
+    affiliateDisclosure: '',   // markdown — nếu trống dùng `disclosure` ở trên
+  },
+  // Contact info — public hiển thị trong /contact + footer.
+  contact: {
+    email: '',                 // duplicate `email` ở trên cho rõ ràng
+    phone: '',
+    facebook: '',              // link page/profile FB
+    zalo: '',                  // link/SDT Zalo
+    address: '',
+  },
 };
 
 // ============ JSON file impl ============
