@@ -47,7 +47,7 @@ export default function AboutMe() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="overflow-hidden rounded-3xl bg-gradient-soft p-5 ring-1 ring-brand-ink-100 sm:p-7"
+        className="mx-auto max-w-5xl overflow-hidden rounded-3xl bg-gradient-soft p-5 ring-1 ring-brand-ink-100 sm:p-7"
       >
         {/* Header — title to hơn, font-weight 700 (bold), spacing emoji↔text rõ ràng */}
         <div className="text-center">
@@ -90,7 +90,7 @@ export default function AboutMe() {
                 {h.text}
               </span>
               {h.sub && (
-                <span className="text-[10px] leading-tight text-brand-ink-500 sm:text-[11px]">
+                <span className="text-[11px] font-normal leading-tight text-brand-ink-400 sm:text-[13px]">
                   {h.sub}
                 </span>
               )}

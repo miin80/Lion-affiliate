@@ -26,10 +26,12 @@ export default function BottomNav() {
       <ul className="grid grid-cols-4">
         {items.map((it, i) => {
           const Icon = it.icon;
-          const content = (
+          const renderContent = (isActive) => (
             <div className="flex flex-col items-center gap-0.5">
-              <Icon className="h-[18px] w-[18px]" />
-              <span className="text-[10px] font-semibold">{it.label}</span>
+              <Icon className={`transition ${isActive ? 'h-[22px] w-[22px]' : 'h-[19px] w-[19px]'}`} />
+              <span className={`text-[10px] ${isActive ? 'font-extrabold' : 'font-semibold'}`}>
+                {it.label}
+              </span>
             </div>
           );
           return (
@@ -41,7 +43,7 @@ export default function BottomNav() {
                   rel="noopener noreferrer"
                   className="flex flex-1 items-center justify-center py-2 text-brand-ink-500"
                 >
-                  {content}
+                  {renderContent(false)}
                 </a>
               ) : (
                 <NavLink
@@ -53,7 +55,7 @@ export default function BottomNav() {
                     }`
                   }
                 >
-                  {content}
+                  {({ isActive }) => renderContent(isActive)}
                 </NavLink>
               )}
             </li>

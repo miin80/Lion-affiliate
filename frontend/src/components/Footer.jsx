@@ -36,8 +36,11 @@ export default function Footer() {
   const visibleStats = footerStats.filter((s) => s && String(s.value || '').trim());
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-6 border-t border-brand-ink-100 bg-brand-ink-50 pb-24 sm:mt-10 sm:pb-10">
-      <div className="container-page py-6 sm:py-8">
+    {/* bg-brand-ink-50 (#fafafa) + border-brand-ink-200 (#e5e5e5 ~ #eee) →
+        tách footer khỏi content rõ ràng hơn so với border-100 cũ (#f5f5f5
+        gần như cùng màu bg). */}
+    <footer className="mt-4 border-t border-brand-ink-200 bg-brand-ink-50 pb-24 sm:mt-10 sm:pb-10">
+      <div className="container-page py-5 sm:py-8">
         {/* Social proof — chỉ hiện khi admin set ít nhất 1 stat */}
         {visibleStats.length > 0 && (
           <div className="mb-8 grid grid-cols-3 gap-2 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-brand-ink-100 sm:gap-6 sm:p-5">
@@ -59,15 +62,15 @@ export default function Footer() {
 
         <div className="grid gap-5 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <img
                 src={profile.avatar}
                 alt={profile.name}
-                className="h-12 w-12 rounded-full object-cover ring-2 ring-white"
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-white sm:h-12 sm:w-12"
               />
-              <div>
-                <div className="text-base font-extrabold">{profile.name}</div>
-                <div className="text-xs text-brand-ink-500">{profile.tagline}</div>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-extrabold sm:text-base">{profile.name}</div>
+                <div className="truncate text-[11px] text-brand-ink-500 sm:text-xs">{profile.tagline}</div>
               </div>
             </div>
 

@@ -39,11 +39,11 @@ export default function HeroSearch({ value, onChange, onDealClick }) {
         <div className="pointer-events-none absolute -right-12 -bottom-10 h-44 w-44 rounded-full bg-brand-pink-200/60 blur-3xl" />
 
         <div className="relative">
-          {hero.badge && (
-            <span className="mx-auto block w-fit rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-orange-600 shadow-soft ring-1 ring-brand-orange-100">
-              {hero.badge}
-            </span>
-          )}
+          {/* Brand memory tagline — fallback default nếu admin chưa set. Đây
+              là điểm nhấn thương hiệu giúp user nhớ web. */}
+          <span className="mx-auto block w-fit rounded-full bg-white/80 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-orange-600 shadow-soft ring-1 ring-brand-orange-100">
+            {hero.badge || '🔥 Deal thật mỗi ngày • Không đăng tràn lan'}
+          </span>
           <h2 className="mt-3 text-center text-2xl font-extrabold leading-tight tracking-tight sm:text-3xl lg:text-4xl">
             {renderTitle()}
           </h2>
