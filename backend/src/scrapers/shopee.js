@@ -243,14 +243,28 @@ function isIncomplete(data) {
   return false;
 }
 
-export async function scrapeShopee(url) {
-  // 1. Shopee internal API
-  const apiData = await tryShopeeApi(url);
+// Sleep helper
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  // 2. Nếu API trả thiếu title/ảnh → fallback HTML
+export async function scrapeShopee(url) {
+  // 1. Shopee internal API — retry tới 3 lần vì Shopee chặn chập chờn.
+  // Lần 1 fail → đợi 1.5s → lần 2 → đợi 2.5s → lần 3.
+  let apiData = await tryShopeeApi(url);
+  if (isIncomplete(apiData)) {
+    console.log('[shopee] API attempt 1 failed/incomplete, retrying after 1.5s...');
+    await wait(1500);
+    apiData = await tryShopeeApi(url);
+  }
+  if (isIncomplete(apiData)) {
+    console.log('[shopee] API attempt 2 failed/incomplete, retrying after 2.5s...');
+    await wait(2500);
+    apiData = await tryShopeeApi(url);
+  }
+
+  // 2. Nếu API vẫn thiếu title/ảnh → fallback HTML
   let htmlData = null;
   if (isIncomplete(apiData)) {
-    console.log('[shopee] API incomplete, trying HTML fallback...');
+    console.log('[shopee] API exhausted 3 attempts, trying HTML fallback...');
     htmlData = await tryShopeeHtml(url);
   }
 

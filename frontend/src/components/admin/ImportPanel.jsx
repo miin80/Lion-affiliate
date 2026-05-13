@@ -110,7 +110,7 @@ export default function ImportPanel() {
       if (missing.length > 0 || resp.fallback) {
         setWarning(
           missing.includes('giá')
-            ? 'Không tự lấy được giá, vui lòng nhập thủ công.'
+            ? 'Shopee chặn request lần này (chập chờn). Bấm "Import dữ liệu sản phẩm" lại 1-2 lần (đợi ~5s/lần) — backend tự retry 3 lần. Hoặc nhập tay các trường còn thiếu.'
             : `Không tự lấy đủ dữ liệu: thiếu ${missing.join(', ') || 'một số trường'}. Vui lòng nhập / sửa thủ công bên dưới — bạn vẫn lưu sản phẩm được.`
         );
       }
