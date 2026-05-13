@@ -32,16 +32,17 @@ export default function Blog() {
       {!loading && items.length === 0 && (
         <section className="container-page mt-6">
           <div className="flex flex-col items-center gap-3 rounded-3xl bg-brand-ink-50 p-10 text-center">
-            <div className="text-5xl">📝</div>
+            <div className="text-5xl">✨</div>
             <p className="max-w-md text-sm text-brand-ink-500">
-              Chưa có bài viết nào. Hãy thêm bài review trong trang quản trị.
+              {isAuthenticated()
+                ? 'Chưa có bài viết nào. Vào trang quản trị → Blog để thêm bài review đầu tiên.'
+                : 'Bài viết mới đang được chuẩn bị. Hãy quay lại sau để đọc những review chân thực nhất nhé!'}
             </p>
-            <Link
-              to={isAuthenticated() ? '/admin' : '/admin/login'}
-              className="btn-primary mt-2 text-xs"
-            >
-              🚪 Vào trang quản trị
-            </Link>
+            {isAuthenticated() && (
+              <Link to="/admin" className="btn-primary mt-2 text-xs">
+                🚪 Vào trang quản trị
+              </Link>
+            )}
           </div>
         </section>
       )}

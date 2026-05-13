@@ -68,11 +68,16 @@ export default function Home() {
               <ProductGrid
                 products={filtered}
                 onOpen={setActive}
-                emptyIcon={products.length === 0 ? '🌱' : '🔍'}
+                emptyIcon={products.length === 0 ? '✨' : '🔍'}
                 emptyText={
                   products.length === 0
-                    ? 'Chưa có sản phẩm nào. Vui lòng thêm sản phẩm trong trang quản trị (Import hoặc Google Sheet).'
+                    ? '✨ Sản phẩm đang được cập nhật. Deal mới sẽ sớm xuất hiện — quay lại sau nhé!'
                     : 'Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé.'
+                }
+                emptyTextAdmin={
+                  products.length === 0
+                    ? 'Chưa có sản phẩm nào. Vào trang quản trị → Import hoặc Google Sheet để thêm.'
+                    : undefined
                 }
                 showAdminCta={products.length === 0}
               />

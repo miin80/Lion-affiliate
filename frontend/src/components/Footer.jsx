@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useSiteSettings } from '../hooks/useSiteSettings';
+import { isAuthenticated } from '../services/auth';
 import {
   TikTokIcon,
   FacebookIcon,
@@ -52,7 +53,9 @@ export default function Footer() {
               <li><Link to="/" className="hover:text-brand-orange-600">Trang chủ</Link></li>
               <li><Link to="/products" className="hover:text-brand-orange-600">Tất cả sản phẩm</Link></li>
               <li><Link to="/blog" className="hover:text-brand-orange-600">Blog Review</Link></li>
-              <li><Link to="/admin" className="hover:text-brand-orange-600">Quản trị</Link></li>
+              {isAuthenticated() && (
+                <li><Link to="/admin" className="hover:text-brand-orange-600">Quản trị</Link></li>
+              )}
             </ul>
           </div>
 
