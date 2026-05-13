@@ -8,6 +8,8 @@ import VideoReels from '../components/VideoReels';
 import TopBestseller from '../components/TopBestseller';
 import Collections from '../components/Collections';
 import ProductModal from '../components/ProductModal';
+import AboutMe from '../components/AboutMe';
+import EmptyDealsState from '../components/EmptyDealsState';
 import { filterAndSort } from '../data/products';
 import { useProducts } from '../hooks/useProducts';
 import { useSiteSettings } from '../hooks/useSiteSettings';
@@ -49,49 +51,53 @@ export default function Home() {
 
       {show('products') && (
         <>
-          <CategoryTabs
-            active={category}
-            onChange={setCategory}
-            sort={sort}
-            onSortChange={setSort}
-          />
-
-          <section id="product-grid" className="container-page mt-4 scroll-mt-6 sm:mt-6">
-            {/* Ẩn dòng đếm khi rỗng (0 sản phẩm) — chỉ hiện khi đang load hoặc đã có sản phẩm */}
-            {(loading || filtered.length > 0) && (
-              <div className="mb-3 flex items-center justify-between text-xs text-brand-ink-500">
-                <span>
-                  {loading ? 'Đang tải...' : `${filtered.length} sản phẩm${search && ` cho "${search}"`}`}
-                </span>
-              </div>
-            )}
-            {loading && products.length === 0 ? (
-              <ProductGridSkeleton count={8} />
-            ) : (
-              <ProductGrid
-                products={filtered}
-                onOpen={setActive}
-                emptyIcon={products.length === 0 ? '✨' : '🔍'}
-                emptyText={
-                  products.length === 0
-                    ? 'Các sản phẩm chọn lọc sẽ sớm có mặt tại đây. Follow để là người đầu tiên nhận deal!'
-                    : 'Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé.'
-                }
-                emptyTextAdmin={
-                  products.length === 0
-                    ? 'Chưa có sản phẩm nào. Vào trang quản trị → Import hoặc Google Sheet để thêm.'
-                    : undefined
-                }
-                showAdminCta={products.length === 0}
+          {/* Khi chưa có sản phẩm: skip CategoryTabs + count, hiển thị EmptyDealsState
+              hấp dẫn (animated icon + CTAs + ghost cards). Khi có sản phẩm rồi:
+              hiện tabs + grid bình thường. */}
+          {!loading && products.length === 0 ? (
+            <section id="product-grid" className="container-page mt-8 scroll-mt-6 sm:mt-10">
+              <EmptyDealsState />
+            </section>
+          ) : (
+            <>
+              <CategoryTabs
+                active={category}
+                onChange={setCategory}
+                sort={sort}
+                onSortChange={setSort}
               />
-            )}
-          </section>
+
+              <section id="product-grid" className="container-page mt-4 scroll-mt-6 sm:mt-6">
+                {(loading || filtered.length > 0) && (
+                  <div className="mb-3 flex items-center justify-between text-xs text-brand-ink-500">
+                    <span>
+                      {loading ? 'Đang tải...' : `${filtered.length} sản phẩm${search && ` cho "${search}"`}`}
+                    </span>
+                  </div>
+                )}
+                {loading && products.length === 0 ? (
+                  <ProductGridSkeleton count={8} />
+                ) : (
+                  <ProductGrid
+                    products={filtered}
+                    onOpen={setActive}
+                    emptyIcon="🔍"
+                    emptyText="Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé."
+                    showAdminCta={false}
+                  />
+                )}
+              </section>
+            </>
+          )}
         </>
       )}
 
       {show('videoReels') && <VideoReels />}
       {show('topBestseller') && <TopBestseller onOpen={setActive} products={products} />}
       {show('collections') && <Collections />}
+
+      {/* Personality / trust section — đặt sau content chính, trước footer */}
+      <AboutMe />
 
       <ProductModal product={active} onClose={() => setActive(null)} />
     </>

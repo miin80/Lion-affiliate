@@ -7,6 +7,7 @@ import {
   YouTubeIcon,
   ShopeeIcon,
   CheckCircle,
+  ArrowRight,
 } from './icons';
 
 const SOCIAL_ICONS = {
@@ -25,28 +26,28 @@ export default function ProfileHeader() {
 
   return (
     <section className="relative overflow-hidden">
-      {/* Cover gradient backdrop */}
-      <div className="relative h-28 bg-gradient-brand sm:h-36">
+      {/* Cover gradient backdrop — đã rút ngắn ~25% để giảm khoảng trắng đầu trang */}
+      <div className="relative h-20 bg-gradient-brand sm:h-28">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.25),transparent_60%)]" />
       </div>
 
-      <div className="container-page -mt-12 sm:-mt-16">
+      <div className="container-page -mt-14 sm:-mt-20">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
           className="flex flex-col items-center text-center"
         >
-          {/* Avatar */}
+          {/* Avatar — to hơn để giống KOL landing (112 mobile / 144 desktop) */}
           <div className="relative">
             <img
               src={profile.avatar}
               alt={profile.name}
               loading="eager"
-              className="h-24 w-24 rounded-full object-cover shadow-avatar sm:h-28 sm:w-28"
+              className="h-28 w-28 rounded-full object-cover shadow-avatar sm:h-36 sm:w-36"
             />
-            <span className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-white shadow ring-1 ring-brand-orange-200">
-              <CheckCircle className="h-5 w-5 text-brand-orange-500" />
+            <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow ring-1 ring-brand-orange-200 sm:h-9 sm:w-9">
+              <CheckCircle className="h-5 w-5 text-brand-orange-500 sm:h-6 sm:w-6" />
             </span>
           </div>
 
@@ -104,21 +105,33 @@ export default function ProfileHeader() {
               })}
           </div>
 
-          {/* Follow CTA — chỉ hiện nếu có URL */}
+          {/* Follow CTA — gradient orange→pink + icon + shadow mạnh hơn (primary action) */}
           {follow.url && (
             <a
               href={follow.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary mt-5 px-7 py-3 text-sm"
+              className="mt-5 inline-flex items-center gap-2 rounded-full bg-gradient-brand px-7 py-3 text-sm font-extrabold text-white shadow-cta transition hover:-translate-y-0.5 hover:shadow-cta-pink"
             >
+              <FollowIcon socials={socials} />
               {follow.text || 'Theo dõi mình'}
+              <ArrowRight className="h-4 w-4" />
             </a>
           )}
         </motion.div>
       </div>
     </section>
   );
+}
+
+/**
+ * Icon nền tảng cho nút Follow — ưu tiên Facebook → TikTok → fallback CheckCircle.
+ * Logic: theo URL admin set trong follow.url thì khó detect, nên check social nào có URL.
+ */
+function FollowIcon({ socials }) {
+  if (socials.facebook) return <FacebookIcon className="h-4 w-4" />;
+  if (socials.tiktok) return <TikTokIcon className="h-4 w-4" />;
+  return <CheckCircle className="h-4 w-4" />;
 }
 
 function Stat({ number, label }) {

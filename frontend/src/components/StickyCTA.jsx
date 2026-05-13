@@ -10,8 +10,10 @@ import { useSiteSettings } from '../hooks/useSiteSettings';
 export default function StickyCTA({ href, label }) {
   const { settings } = useSiteSettings();
   const follow = settings.buttons?.follow || {};
-  const resolvedHref = href || follow.url;
-  const resolvedLabel = label || follow.text || 'Theo dõi mình';
+  const socials = settings.socials || {};
+  const resolvedHref = href || follow.url || socials.facebook || socials.tiktok;
+  // Default text mạnh hơn để tăng conversion mobile. Admin có thể override qua settings.
+  const resolvedLabel = label || follow.text || '🔥 Follow để nhận deal mới';
   const [show, setShow] = useState(false);
 
   useEffect(() => {

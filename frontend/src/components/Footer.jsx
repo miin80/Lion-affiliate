@@ -38,6 +38,23 @@ export default function Footer() {
                 <div className="text-xs text-brand-ink-500">{profile.tagline}</div>
               </div>
             </div>
+
+            {/* USP — 3 lý do user nên follow / tin tưởng. Đặt ngay dưới brand cho personality. */}
+            <ul className="mt-4 space-y-1.5 text-xs text-brand-ink-600">
+              <li className="flex items-center gap-2">
+                <span aria-hidden>🔥</span>
+                <span>Deal mới cập nhật mỗi ngày</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span aria-hidden>🎥</span>
+                <span>Video review thật, đã trải nghiệm</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span aria-hidden>🛒</span>
+                <span>Link mua chính chủ, an toàn</span>
+              </li>
+            </ul>
+
             {settings.email && (
               <p className="mt-3 text-sm text-brand-ink-500">
                 Liên hệ hợp tác: <a href={`mailto:${settings.email}`} className="font-semibold text-brand-orange-600 hover:underline">{settings.email}</a>
