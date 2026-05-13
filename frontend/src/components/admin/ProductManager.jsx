@@ -380,6 +380,7 @@ export default function ProductManager() {
                 onToggleStatus={() => toggleStatus(p)}
                 onDelete={() => moveToTrash(p)}
                 onEdit={() => setEditing(p)}
+                onCopiedLink={(url) => flashToast(`🔗 Đã copy link sản phẩm: ${url}`)}
               />
             ))}
           </div>
@@ -396,7 +397,7 @@ export default function ProductManager() {
   );
 }
 
-function ProductRow({ product, busy, selected, onSelectToggle, onToggleStatus, onDelete, onEdit }) {
+function ProductRow({ product, busy, selected, onSelectToggle, onToggleStatus, onDelete, onEdit, onCopiedLink }) {
   const isHidden = product.status === 'hidden';
   void product.source;
   return (
@@ -512,6 +513,22 @@ function ProductRow({ product, busy, selected, onSelectToggle, onToggleStatus, o
             }`}
           >
             {isHidden ? '👁 Hiện lại' : '🙈 Ẩn'}
+          </button>
+          <button
+            onClick={async () => {
+              const slug = product.slug || product.id;
+              const url = `${window.location.origin}/product/${slug}`;
+              try {
+                await navigator.clipboard.writeText(url);
+                onCopiedLink?.(url);
+              } catch {
+                window.prompt('Copy link:', url);
+              }
+            }}
+            className="rounded-full bg-brand-ink-100 px-2.5 py-1 text-[11px] font-semibold text-brand-ink-700 transition hover:bg-brand-ink-200"
+            title="Copy link công khai của sản phẩm"
+          >
+            🔗 Copy link
           </button>
           <button
             onClick={onDelete}

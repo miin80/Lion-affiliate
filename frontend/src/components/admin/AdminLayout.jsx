@@ -17,6 +17,7 @@ const MENU = [
   { to: '/admin/blog',               icon: '📝', label: 'Blog' },
   { to: '/admin/google-sheet',       icon: '📊', label: 'Google Sheet' },
   { to: '/admin/cai-dat-website',    icon: '⚙️', label: 'Cài đặt website' },
+  { to: '/admin/backup',             icon: '💾', label: 'Backup dữ liệu' },
   { divider: true, label: 'Thùng rác' },
   { to: '/admin/trash/san-pham',     icon: '🗑',  label: 'SP đã xoá' },
   { to: '/admin/trash/video',        icon: '🗑',  label: 'Video đã xoá' },

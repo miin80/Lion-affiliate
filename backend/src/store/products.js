@@ -196,11 +196,32 @@ export async function listProducts() {
   return jsonRead();
 }
 
-/** Chỉ sản phẩm status=active (public). */
+// Lọc sản phẩm theo startDate/endDate.
+//  - Chưa tới startDate → ẩn khỏi public.
+//  - Quá endDate VÀ autoHideExpired !== false → ẩn khỏi public.
+//  - Quá endDate VÀ autoHideExpired === false → vẫn hiện (frontend show badge "Hết hạn").
+function isWithinSchedule(p) {
+  const now = Date.now();
+  if (p.startDate) {
+    const start = new Date(p.startDate).getTime();
+    if (Number.isFinite(start) && start > now) return false;
+  }
+  if (p.endDate && (p.autoHideExpired ?? true) !== false) {
+    const end = new Date(p.endDate).getTime();
+    if (Number.isFinite(end) && end < now) return false;
+  }
+  return true;
+}
+
+/** Chỉ sản phẩm status=active + trong khung schedule (public). */
 export async function listActiveProducts() {
-  if (USE_SUPABASE) return supaListActive();
-  const all = await jsonRead();
-  return all.filter((p) => (p.status || 'active') === 'active');
+  let active;
+  if (USE_SUPABASE) active = await supaListActive();
+  else {
+    const all = await jsonRead();
+    active = all.filter((p) => (p.status || 'active') === 'active');
+  }
+  return active.filter(isWithinSchedule);
 }
 
 /** Sản phẩm trash. */

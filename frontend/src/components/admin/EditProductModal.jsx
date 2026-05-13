@@ -63,6 +63,9 @@ export default function EditProductModal({ product, onClose, onSaved }) {
       discountPercent: product.discountPercent || '',
       soldText: product.soldText || '',
       rating: product.rating || 4.8,
+      startDate: product.startDate ? product.startDate.slice(0, 10) : '',
+      endDate: product.endDate ? product.endDate.slice(0, 10) : '',
+      autoHideExpired: product.autoHideExpired ?? true,
     });
     setError('');
   }, [product]);
@@ -112,6 +115,9 @@ export default function EditProductModal({ product, onClose, onSaved }) {
         oldPriceMax: Number(draft.oldPriceMax) || null,
         discountPercent: Number(draft.discountPercent) || null,
         rating: Number(draft.rating) || 0,
+        startDate: draft.startDate || null,
+        endDate: draft.endDate || null,
+        autoHideExpired: draft.autoHideExpired ?? true,
       };
       const saved = await saveProductApi(payload);
       clearDraft(); // xoá draft sau khi save thành công
@@ -314,6 +320,47 @@ export default function EditProductModal({ product, onClose, onSaved }) {
                 value={draft.videos}
                 onChange={(v) => update({ videos: v })}
               />
+
+              {/* Deal expiry — startDate / endDate / autoHide */}
+              <div className="rounded-2xl bg-brand-ink-50 p-3 ring-1 ring-brand-ink-100">
+                <div className="text-sm font-bold">⏰ Deal hết hạn (tuỳ chọn)</div>
+                <p className="mt-0.5 text-[11px] text-brand-ink-500">
+                  Để trống nếu sản phẩm không có deadline. Nếu set: trước startDate → SP chưa hiện public. Sau endDate → tự ẩn (nếu bật).
+                </p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <Field label="Ngày bắt đầu">
+                    <input
+                      type="date"
+                      className="input-base"
+                      value={draft.startDate || ''}
+                      onChange={(e) => update({ startDate: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Ngày kết thúc">
+                    <input
+                      type="date"
+                      className="input-base"
+                      value={draft.endDate || ''}
+                      onChange={(e) => update({ endDate: e.target.value })}
+                    />
+                  </Field>
+                  <Field label="Auto-hide khi hết hạn">
+                    <label className="mt-2 flex cursor-pointer items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={draft.autoHideExpired ?? true}
+                        onChange={(e) => update({ autoHideExpired: e.target.checked })}
+                        className="h-4 w-4 accent-brand-orange-500"
+                      />
+                      <span className="text-xs">
+                        {draft.autoHideExpired === false
+                          ? 'Tắt — vẫn hiện kèm badge "Hết hạn"'
+                          : 'Bật — tự ẩn khỏi public'}
+                      </span>
+                    </label>
+                  </Field>
+                </div>
+              </div>
 
               <div>
                 <label className="text-sm font-bold">Badges</label>

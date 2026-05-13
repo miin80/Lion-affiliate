@@ -24,6 +24,11 @@ import {
   previewSheetRoute,
   importSheetRoute,
 } from './routes/googleSheet.js';
+import {
+  backupExportRoute,
+  backupExportCsvRoute,
+  backupImportRoute,
+} from './routes/backup.js';
 import { createRoutes } from './store/genericStore.js';
 import {
   videosStore,
@@ -112,6 +117,11 @@ app.get('/api/google-sheet/settings', requireAuth, getSheetSettingsRoute);
 app.put('/api/google-sheet/settings', requireAuth, putSheetSettingsRoute);
 app.post('/api/google-sheet/preview', requireAuth, previewSheetRoute);
 app.post('/api/google-sheet/import', requireAuth, importSheetRoute);
+
+// ============ BACKUP / RESTORE (admin only) ============
+app.get('/api/backup/export', requireAuth, backupExportRoute);
+app.get('/api/backup/export-csv', requireAuth, backupExportCsvRoute);
+app.post('/api/backup/import', requireAuth, backupImportRoute);
 
 // ============ GENERIC CMS RESOURCES ============
 // Mỗi resource có: GET public (active only), GET /admin, GET /:id,
