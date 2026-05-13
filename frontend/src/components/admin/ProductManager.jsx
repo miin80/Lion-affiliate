@@ -210,44 +210,24 @@ export default function ProductManager() {
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-brand-ink-100 sm:p-5">
-        <div className="grid gap-3">
-          {/* Search */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="flex flex-1 items-center gap-2 rounded-full bg-brand-ink-50 px-4 py-2">
-              <span className="text-brand-ink-400">🔍</span>
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Tìm theo tên / id / tag..."
-                className="w-full bg-transparent text-sm outline-none"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="rounded-full border border-brand-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-orange-300"
-              >
-                {SORT_OPTIONS.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={load}
-                className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-brand-orange-600 ring-1 ring-brand-orange-200 hover:bg-brand-orange-50"
-              >
-                ↻ Reload
-              </button>
-            </div>
+      {/* Toolbar — desktop/tablet lớn (lg+): 1 hàng ngang [search grow | status chips | source chips | sort | reload].
+          Mobile/tablet nhỏ: tự wrap, mỗi section full-width. */}
+      <div className="rounded-3xl bg-white p-3 shadow-card ring-1 ring-brand-ink-100 sm:p-4">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:gap-3">
+          {/* Search — chiếm phần lớn chiều rộng trên lg+, full-width trên mobile */}
+          <div className="flex w-full min-w-[220px] items-center gap-2 rounded-full bg-brand-ink-50 px-4 py-2 lg:w-auto lg:flex-1">
+            <span className="text-brand-ink-400">🔍</span>
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm theo tên / id / tag..."
+              className="w-full bg-transparent text-sm outline-none"
+            />
           </div>
 
-          {/* Status filter */}
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+          {/* Status filter chips */}
+          <div className="flex w-full gap-1.5 overflow-x-auto scrollbar-hide lg:w-auto lg:flex-nowrap">
             {STATUS_FILTERS.map((f) => {
               const isActive = statusFilter === f.key;
               return (
@@ -266,8 +246,11 @@ export default function ProductManager() {
             })}
           </div>
 
-          {/* Source filter */}
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
+          {/* Divider chỉ hiện trên lg+ để tách 2 nhóm filter */}
+          <span className="hidden h-5 w-px shrink-0 bg-brand-ink-200 lg:block" />
+
+          {/* Source filter chips */}
+          <div className="flex w-full gap-1.5 overflow-x-auto scrollbar-hide lg:w-auto lg:flex-nowrap">
             {SOURCE_FILTERS.map((f) => {
               const isActive = sourceFilter === f.key;
               return (
@@ -284,6 +267,27 @@ export default function ProductManager() {
                 </button>
               );
             })}
+          </div>
+
+          {/* Sort + Reload — ngoài cùng bên phải trên lg+, full-width align-end trên mobile */}
+          <div className="flex w-full items-center justify-end gap-2 lg:ml-auto lg:w-auto">
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="shrink-0 rounded-full border border-brand-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-orange-300"
+            >
+              {SORT_OPTIONS.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={load}
+              className="shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-brand-orange-600 ring-1 ring-brand-orange-200 hover:bg-brand-orange-50"
+            >
+              ↻ Reload
+            </button>
           </div>
         </div>
       </div>
