@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import CloudinaryUploader from './CloudinaryUploader';
-import { CLOUDINARY_ENABLED } from '../../services/cloudinary';
 
 /**
  * Editor cho mảng URL (ảnh hoặc video).
@@ -126,23 +125,23 @@ export default function MediaListEditor({
         💡 Mẹo: chuột phải ảnh trên Shopee → "Sao chép địa chỉ hình ảnh" → dán vào đây. Hỗ trợ paste nhiều URL cùng lúc (mỗi URL 1 dòng hoặc cách nhau bằng dấu phẩy).
       </p>
 
-      {/* Cloudinary upload — hỗ trợ cả image + video. Ẩn nếu chưa config env
-          (fallback paste URL ở trên vẫn hoạt động bình thường — không crash). */}
-      {CLOUDINARY_ENABLED && (
-        <div className="mt-2">
-          <CloudinaryUploader
-            multiple
-            accept={type === 'video' ? 'video/*' : 'image/*'}
-            label={type === 'video' ? '📤 Upload video từ máy' : '📤 Upload ảnh từ máy'}
-            hint={
-              type === 'video'
-                ? 'Kéo thả MP4/MOV vào đây hoặc click để chọn (video < 100MB)'
-                : 'Kéo thả file ảnh vào đây hoặc click để chọn'
-            }
-            onUpload={(urls) => onChange([...(value || []), ...urls])}
-          />
-        </div>
-      )}
+      {/* Cloudinary uploader — luôn render. Component tự xử lý 2 trạng thái:
+          - CLOUDINARY_ENABLED=true → box xám "📤 Upload từ máy" (drag-drop + click)
+          - CLOUDINARY_ENABLED=false → hint vàng hướng dẫn setup ENV trên Vercel.
+          Paste URL ở trên luôn hoạt động độc lập với Cloudinary. */}
+      <div className="mt-2">
+        <CloudinaryUploader
+          multiple
+          accept={type === 'video' ? 'video/*' : 'image/*'}
+          label={type === 'video' ? '📤 Upload video từ máy' : '📤 Upload ảnh từ máy'}
+          hint={
+            type === 'video'
+              ? 'Kéo thả MP4/MOV vào đây hoặc click để chọn (video < 100MB)'
+              : 'Kéo thả file ảnh vào đây hoặc click để chọn'
+          }
+          onUpload={(urls) => onChange([...(value || []), ...urls])}
+        />
+      </div>
     </div>
   );
 }
