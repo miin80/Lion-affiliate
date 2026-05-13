@@ -153,12 +153,16 @@ async function tryShopeeApi(url, variant = 'item') {
   }
 }
 
-// Build URL ảnh thật từ Shopee image ID.
+// Build URL ảnh từ Shopee image ID. Shopee CDN serve WebP — append .webp
+// để browser load đúng MIME type (giống F12 hiện trên trang Shopee).
 const CDN = 'https://down-vn.img.susercontent.com/file/';
 function imageUrlFromId(id) {
   if (!id || typeof id !== 'string') return null;
-  if (id.startsWith('http')) return id;
-  return CDN + id;
+  if (id.startsWith('http')) {
+    // URL đã có sẵn → append .webp nếu chưa có extension
+    return /\.(jpe?g|png|webp|gif)$/i.test(id) ? id : id + '.webp';
+  }
+  return CDN + id + '.webp';
 }
 
 /**
