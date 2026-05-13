@@ -12,6 +12,9 @@ const SINGLETON_ID = 'singleton';
 
 const DEFAULT = {
   csvUrl: '',
+  // Apps Script Web App URL — backend POST product mới về đây để Sheet auto append/update row.
+  // Empty = không push. Setup: deploy Apps Script as Web App "Anyone".
+  pushWebAppUrl: '',
   lastImportAt: null,
   lastImportCount: 0,
 };

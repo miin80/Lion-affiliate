@@ -12,6 +12,8 @@ const STATUS_FILTERS = [
 
 export default function GoogleSheetManager() {
   const [csvUrl, setCsvUrl] = useState('');
+  const [pushWebAppUrl, setPushWebAppUrl] = useState('');
+  const [savingPush, setSavingPush] = useState(false);
   const [lastImportAt, setLastImportAt] = useState(null);
   const [lastImportCount, setLastImportCount] = useState(0);
 
@@ -33,6 +35,7 @@ export default function GoogleSheetManager() {
       try {
         const s = await sheetApi.getSettings();
         setCsvUrl(s?.csvUrl || '');
+        setPushWebAppUrl(s?.pushWebAppUrl || '');
         setLastImportAt(s?.lastImportAt || null);
         setLastImportCount(s?.lastImportCount || 0);
       } catch (err) {
@@ -56,13 +59,27 @@ export default function GoogleSheetManager() {
     }
     setSaving(true);
     try {
-      const s = await sheetApi.saveSettings(csvUrl.trim());
+      const s = await sheetApi.saveSettings({ csvUrl: csvUrl.trim() });
       setCsvUrl(s.csvUrl);
       flashToast('✓ Đã lưu Google Sheet URL');
     } catch (err) {
       setError(`Lỗi lưu: ${err.message}`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSavePushUrl = async () => {
+    setError('');
+    setSavingPush(true);
+    try {
+      const s = await sheetApi.saveSettings({ pushWebAppUrl: pushWebAppUrl.trim() });
+      setPushWebAppUrl(s.pushWebAppUrl || '');
+      flashToast(s.pushWebAppUrl ? '✓ Đã lưu Push URL — từ giờ save sản phẩm sẽ tự đẩy lên Sheet' : '✓ Đã tắt auto-push lên Sheet');
+    } catch (err) {
+      setError(`Lỗi lưu: ${err.message}`);
+    } finally {
+      setSavingPush(false);
     }
   };
 
@@ -208,6 +225,84 @@ export default function GoogleSheetManager() {
           </div>
         )}
       </div>
+
+      {/* AUTO PUSH WEB → SHEET */}
+      <div className="rounded-3xl bg-gradient-to-br from-green-50 to-emerald-50 p-5 shadow-card ring-1 ring-green-200 sm:p-6">
+        <div className="flex items-start gap-2">
+          <span className="rounded-full bg-green-500 px-2.5 py-1 text-[11px] font-bold text-white">
+            AUTO
+          </span>
+          <h3 className="text-base font-extrabold">📤 Auto-push Web → Sheet</h3>
+        </div>
+        <p className="mt-2 text-xs text-brand-ink-700">
+          Khi bạn save sản phẩm trên web (Import / Edit), backend sẽ tự POST data về
+          Google Sheet → Sheet auto append (mới) hoặc update (theo id) → **Sheet là kho lưu trữ
+          master**, không bị trùng.
+        </p>
+
+        <details className="mt-3 rounded-xl bg-white p-3 ring-1 ring-green-100">
+          <summary className="cursor-pointer text-sm font-bold">📋 Cách deploy Apps Script Web App (1 lần duy nhất)</summary>
+          <ol className="ml-5 mt-2 list-decimal space-y-1 text-xs text-brand-ink-700">
+            <li>Mở Sheet → Extensions → Apps Script.</li>
+            <li>Copy nội dung file <code>apps-script/Code.gs</code> trên GitHub repo → paste đè lên (nếu đã có) → Ctrl+S.</li>
+            <li>Trong Apps Script Editor → bấm nút <strong>"Deploy"</strong> (góc phải trên) → <strong>"New deployment"</strong>.</li>
+            <li>Bấm icon ⚙ ở "Select type" → chọn <strong>"Web app"</strong>.</li>
+            <li>Execute as: <strong>Me</strong> | Who has access: <strong>Anyone</strong> → Deploy.</li>
+            <li>Copy URL hiện ra (dạng <code>https://script.google.com/macros/s/AKfycb.../exec</code>).</li>
+            <li>Paste URL vào ô bên dưới → bấm Lưu.</li>
+          </ol>
+        </details>
+
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          <input
+            type="url"
+            value={pushWebAppUrl}
+            onChange={(e) => setPushWebAppUrl(e.target.value)}
+            placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+            className="input-base flex-1"
+          />
+          <button
+            onClick={handleSavePushUrl}
+            disabled={savingPush}
+            className="btn-primary shrink-0 text-sm disabled:opacity-50"
+          >
+            {savingPush ? '⏳ Đang lưu...' : '💾 Lưu Push URL'}
+          </button>
+        </div>
+        {pushWebAppUrl && (
+          <div className="mt-2 text-[11px] text-green-700">
+            ✅ Auto-push đã bật. Mỗi sản phẩm save → tự đẩy lên Sheet ngay (fire-and-forget,
+            không block).
+          </div>
+        )}
+        {!pushWebAppUrl && (
+          <div className="mt-2 text-[11px] text-brand-ink-500">
+            💡 Để trống = không push. Save sản phẩm vẫn lưu vào web bình thường, chỉ không đẩy Sheet.
+          </div>
+        )}
+      </div>
+
+      {/* AUTO PULL SHEET → WEB (time trigger) */}
+      <details className="rounded-3xl bg-white p-5 shadow-card ring-1 ring-brand-ink-100 sm:p-6">
+        <summary className="cursor-pointer">
+          <span className="text-base font-extrabold">⏰ Auto-sync Sheet → Web (time trigger)</span>
+        </summary>
+        <p className="mt-2 text-xs text-brand-ink-500">
+          Muốn sửa Sheet → web tự update theo? Cài time trigger trong Apps Script:
+        </p>
+        <ol className="ml-5 mt-2 list-decimal space-y-1 text-xs text-brand-ink-700">
+          <li>Apps Script Editor → bấm icon <strong>⏰ Triggers</strong> bên trái.</li>
+          <li>Bấm <strong>"+ Add Trigger"</strong> góc dưới phải.</li>
+          <li>Choose function: <code>syncAllSilent</code></li>
+          <li>Event source: <strong>Time-driven</strong></li>
+          <li>Type: <strong>Minutes timer</strong> | Every <strong>5 minutes</strong> (hoặc 10/15).</li>
+          <li>Save → xong.</li>
+        </ol>
+        <p className="mt-2 rounded-xl bg-amber-50 p-2 text-[11px] text-amber-800 ring-1 ring-amber-200">
+          ⚠️ Mỗi lần sửa Sheet sẽ đợi tối đa 5 phút trước khi web cập nhật. Nếu cần ngay, bấm tay
+          <strong>"🔄 Đồng bộ ngay"</strong> trong menu Sheet.
+        </p>
+      </details>
 
       {error && (
         <div className="rounded-2xl bg-red-50 px-4 py-2.5 text-sm text-red-700 ring-1 ring-red-200">

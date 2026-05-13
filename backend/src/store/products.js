@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { supabase, USE_SUPABASE } from './supabase.js';
+import { pushProductToSheet } from '../services/sheetPushService.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
@@ -287,8 +288,8 @@ export async function saveProduct(product) {
   const id = product.id || `p_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   const slug = product.slug || slugify(product.title || id);
 
+  let saved;
   if (USE_SUPABASE) {
-    // Lấy bản cũ (nếu có) để giữ createdAt + source
     const existing = await supaGet(id);
     const merged = {
       ...(existing || {}),
@@ -300,26 +301,33 @@ export async function saveProduct(product) {
       updatedAt: now,
       createdAt: existing?.createdAt || now,
     };
-    return supaUpsert(merged);
+    saved = await supaUpsert(merged);
+  } else {
+    const all = await jsonRead();
+    const idx = all.findIndex((p) => p.id === id);
+    const next = {
+      ...(idx >= 0 ? all[idx] : {}),
+      ...product,
+      id,
+      slug: idx >= 0 ? all[idx].slug : slug,
+      status: product.status || (idx >= 0 ? all[idx].status : 'active') || 'active',
+      source: idx >= 0 ? all[idx].source || 'manual' : (product.source || 'manual'),
+      updatedAt: now,
+      createdAt: idx >= 0 ? all[idx].createdAt : now,
+    };
+    if (idx >= 0) all[idx] = next;
+    else all.unshift(next);
+    await jsonWrite(all);
+    saved = next;
   }
 
-  // JSON fallback
-  const all = await jsonRead();
-  const idx = all.findIndex((p) => p.id === id);
-  const next = {
-    ...(idx >= 0 ? all[idx] : {}),
-    ...product,
-    id,
-    slug: idx >= 0 ? all[idx].slug : slug,
-    status: product.status || (idx >= 0 ? all[idx].status : 'active') || 'active',
-    source: idx >= 0 ? all[idx].source || 'manual' : (product.source || 'manual'),
-    updatedAt: now,
-    createdAt: idx >= 0 ? all[idx].createdAt : now,
-  };
-  if (idx >= 0) all[idx] = next;
-  else all.unshift(next);
-  await jsonWrite(all);
-  return next;
+  // Web → Sheet push (fire-and-forget). Skip nếu source=sheet (tránh loop).
+  // Chỉ chạy nếu admin đã cấu hình pushWebAppUrl trong /admin/google-sheet.
+  pushProductToSheet(saved).catch((err) =>
+    console.warn('[saveProduct] push-to-sheet failed:', err.message)
+  );
+
+  return saved;
 }
 
 export async function deleteProduct(id) {

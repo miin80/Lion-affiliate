@@ -15,15 +15,21 @@ export async function getSheetSettingsRoute(_req, res) {
   }
 }
 
-/** PUT /api/google-sheet/settings  body: { csvUrl } */
+/** PUT /api/google-sheet/settings  body: { csvUrl?, pushWebAppUrl? } */
 export async function putSheetSettingsRoute(req, res) {
   try {
-    const { csvUrl } = req.body || {};
-    if (typeof csvUrl !== 'string') {
-      return res.status(400).json({ error: 'Thiếu csvUrl.' });
+    const body = req.body || {};
+    const patch = {};
+    if (typeof body.csvUrl === 'string') {
+      patch.csvUrl = normalizeCsvUrl(body.csvUrl);
     }
-    const normalized = normalizeCsvUrl(csvUrl);
-    const saved = await writeSheetSettings({ csvUrl: normalized });
+    if (typeof body.pushWebAppUrl === 'string') {
+      patch.pushWebAppUrl = body.pushWebAppUrl.trim();
+    }
+    if (!Object.keys(patch).length) {
+      return res.status(400).json({ error: 'Thiếu field cần update.' });
+    }
+    const saved = await writeSheetSettings(patch);
     res.json({ settings: saved });
   } catch (err) {
     res.status(500).json({ error: err.message });

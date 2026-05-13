@@ -542,6 +542,195 @@ function detectPlatform_(url) {
 }
 
 // ============================================================================
+// WEB → SHEET REVERSE SYNC
+//
+// Khi admin save product trên web, backend POST request tới URL này → Sheet
+// auto append (sản phẩm mới) hoặc update (đã có id).
+//
+// SETUP 1 LẦN:
+//   1. Tools → Deploy → "New deployment"
+//   2. Loại: "Web app"
+//   3. Execute as: "Me"
+//   4. Who has access: "Anyone" (Sheet phải mở chia sẻ Anyone with link cho an toàn)
+//   5. Deploy → copy URL dạng https://script.google.com/macros/s/AKfycb.../exec
+//   6. Paste URL vào /admin/google-sheet → ô "Push Web App URL" → Save.
+//
+// Mỗi khi admin save sản phẩm mới trên web → row tự xuất hiện trong Sheet.
+// Tránh trùng vì upsert theo id.
+// ============================================================================
+function doPost(e) {
+  var output = ContentService.createTextOutput();
+  output.setMimeType(ContentService.MimeType.JSON);
+  try {
+    var body = JSON.parse(e.postData.contents || '{}');
+    var p = body.product;
+    if (!p || !p.id) {
+      output.setContent(JSON.stringify({ ok: false, error: 'Thiếu product hoặc product.id' }));
+      return output;
+    }
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+
+    // Nếu Sheet rỗng → tạo headers
+    if (lastRow < 1 || lastCol < HEADERS.length) {
+      var displays = HEADERS.map(function (h) { return h.display; });
+      sheet.getRange(1, 1, 1, displays.length).setValues([displays]);
+      sheet.getRange(1, 1, 1, displays.length)
+        .setFontWeight('bold')
+        .setBackground('#fff7ed')
+        .setHorizontalAlignment('center');
+      sheet.setFrozenRows(1);
+      lastRow = 1;
+      lastCol = displays.length;
+    }
+
+    // Map headers → index
+    var rawHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+      .map(function (h) { return String(h || '').trim().toLowerCase(); });
+    var idx = {};
+    HEADERS.forEach(function (h) {
+      var i = rawHeaders.indexOf(h.display.toLowerCase());
+      if (i < 0) i = rawHeaders.indexOf(h.field.toLowerCase());
+      if (i >= 0) idx[h.field] = i;
+    });
+    if (idx.id === undefined) {
+      output.setContent(JSON.stringify({ ok: false, error: 'Sheet thiếu cột ID' }));
+      return output;
+    }
+
+    // Build row theo schema
+    var row = new Array(lastCol).fill('');
+    var put = function (field, val) {
+      if (idx[field] !== undefined) row[idx[field]] = val == null ? '' : val;
+    };
+    put('id', p.id);
+    put('title', p.title);
+    put('sourceUrl', p.sourceUrl);
+    put('affiliateUrl', p.affiliateUrl);
+    put('category', p.category);
+    put('price', p.price || p.priceMin || '');
+    put('oldPrice', p.originalPrice || p.oldPriceMin || '');
+    put('description', p.description);
+    put('image', (p.images && p.images[0]) || '');
+    put('gallery', p.images ? p.images.slice(1).join(', ') : '');
+    put('video', p.video || (p.videos && p.videos[0]) || '');
+    put('rating', p.rating);
+    put('tags', (p.tags || []).join(', '));
+    put('isHot', (p.badges || []).indexOf('hot') >= 0 ? 'true' : 'false');
+    put('isBestSeller', (p.badges || []).indexOf('bestseller') >= 0 ? 'true' : 'false');
+    put('status', p.status || 'active');
+
+    // Tìm row có cùng id
+    var foundRow = -1;
+    if (lastRow >= 2) {
+      var ids = sheet.getRange(2, idx.id + 1, lastRow - 1, 1).getValues();
+      for (var i = 0; i < ids.length; i++) {
+        if (String(ids[i][0]) === String(p.id)) {
+          foundRow = i + 2;
+          break;
+        }
+      }
+    }
+
+    if (foundRow > 0) {
+      // Update — chỉ ghi vào ô đang trống để không phá data user đã sửa tay.
+      var existing = sheet.getRange(foundRow, 1, 1, lastCol).getValues()[0];
+      for (var j = 0; j < row.length; j++) {
+        var current = String(existing[j] || '').trim();
+        if (current && row[j] !== '') {
+          // Giữ data cũ (user có thể đã sửa tay)
+          // Trừ id, title, status → luôn cập nhật
+        }
+      }
+      // Ghi đè TOÀN BỘ row mới (đơn giản, user sửa lại nếu muốn).
+      sheet.getRange(foundRow, 1, 1, row.length).setValues([row]);
+      output.setContent(JSON.stringify({ ok: true, action: 'updated', row: foundRow }));
+      return output;
+    } else {
+      // Append row mới ở cuối
+      sheet.appendRow(row);
+      var newRow = sheet.getLastRow();
+      output.setContent(JSON.stringify({ ok: true, action: 'inserted', row: newRow }));
+      return output;
+    }
+  } catch (err) {
+    output.setContent(JSON.stringify({ ok: false, error: err.toString() }));
+    return output;
+  }
+}
+
+// Test endpoint — GET requests trả version info.
+function doGet() {
+  return ContentService
+    .createTextOutput(JSON.stringify({
+      ok: true,
+      service: 'lion-affiliate-sheet-sync',
+      version: '1.0',
+      note: 'POST product JSON tới URL này từ backend để append/update Sheet.',
+    }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ============================================================================
+// SHEET → WEB TIME TRIGGER  (auto sync mỗi N phút)
+//
+// User sửa Sheet → time trigger chạy syncAllSilent định kỳ → push toàn bộ
+// rows hợp lệ về backend. Sheet là master, web auto theo.
+//
+// SETUP 1 LẦN:
+//   Apps Script Editor → Triggers (icon đồng hồ bên trái) → Add Trigger:
+//     Choose function: syncAllSilent
+//     Event source: Time-driven
+//     Type: Minutes timer
+//     Interval: Every 5 minutes (hoặc 10 phút tuỳ ý)
+//     Notification: Daily
+//   → Save.
+//
+// Từ giờ mỗi khi bạn sửa Sheet, đợi <= 5 phút web sẽ tự update theo.
+// Hoặc bấm tay "🔄 Đồng bộ ngay" để push ngay lập tức.
+// ============================================================================
+function syncAllSilent() {
+  var result;
+  try {
+    result = readSheetProducts_(false);
+  } catch (err) {
+    console.error('[syncAllSilent] read fail:', err.message);
+    return;
+  }
+  if (!result.products.length) {
+    console.log('[syncAllSilent] No products to sync.');
+    return;
+  }
+  var token;
+  try {
+    token = getValidToken_();
+  } catch (err) {
+    console.error('[syncAllSilent] login fail:', err.message);
+    return;
+  }
+  var payload = result.products.map(function (p) {
+    var copy = {};
+    Object.keys(p).forEach(function (k) { if (k !== '_rowNum') copy[k] = p[k]; });
+    return copy;
+  });
+  var res = UrlFetchApp.fetch(BACKEND_URL + '/api/products/bulk', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + token },
+    payload: JSON.stringify({ products: payload }),
+    muteHttpExceptions: true,
+  });
+  var code = res.getResponseCode();
+  if (code !== 200) {
+    console.error('[syncAllSilent] HTTP ' + code + ': ' + res.getContentText().slice(0, 200));
+    return;
+  }
+  var data = JSON.parse(res.getContentText());
+  console.log('[syncAllSilent] ✅ pushed=' + data.imported + '/' + data.total + ' errors=' + data.errors);
+}
+
+// ============================================================================
 // AUTO-FILL TỪ URL  (Forward sync 2-chiều)
 // User chỉ cần paste sourceUrl + affiliateUrl trong Sheet.
 // Apps Script gửi rows tới /api/products/sheet-sync → backend tự scrape +

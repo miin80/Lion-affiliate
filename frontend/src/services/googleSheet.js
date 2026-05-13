@@ -21,11 +21,11 @@ export const sheetApi = {
   /** Lấy CSV URL + meta (lastImportAt, lastImportCount) đã lưu. */
   getSettings: () => req('/api/google-sheet/settings').then((d) => d.settings),
 
-  /** Lưu CSV URL. Backend tự normalize (edit URL → export URL). */
-  saveSettings: (csvUrl) =>
+  /** Lưu CSV URL + (optional) pushWebAppUrl. Backend tự normalize. */
+  saveSettings: (payload) =>
     req('/api/google-sheet/settings', {
       method: 'PUT',
-      body: JSON.stringify({ csvUrl }),
+      body: JSON.stringify(typeof payload === 'string' ? { csvUrl: payload } : payload),
     }).then((d) => d.settings),
 
   /** Fetch + parse + map. Trả về { rows, columnMap, summary } */
