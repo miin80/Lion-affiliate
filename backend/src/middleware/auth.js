@@ -1,11 +1,23 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-env';
+const DEFAULT_INSECURE = 'change-me-in-env';
+const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_INSECURE;
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-if (process.env.JWT_SECRET === undefined) {
-  console.warn(
-    '[auth] WARNING: JWT_SECRET not set in env. Đặt biến môi trường JWT_SECRET (chuỗi random, dài) trong .env hoặc Render/Railway.'
-  );
+if (!process.env.JWT_SECRET || JWT_SECRET === DEFAULT_INSECURE) {
+  if (IS_PROD) {
+    // Production: fail-fast. Không cho phép token ký bằng secret yếu.
+    console.error(
+      '[auth] ❌ FATAL: JWT_SECRET chưa set (hoặc dùng default unsafe) trong production.\n' +
+        '   Set biến môi trường JWT_SECRET = chuỗi random ≥ 32 ký tự trong Render/Vercel env.\n' +
+        '   Vd: openssl rand -hex 32'
+    );
+    process.exit(1);
+  } else {
+    console.warn(
+      '[auth] WARNING: JWT_SECRET chưa set (dev mode). Đặt JWT_SECRET trong .env trước khi deploy production.'
+    );
+  }
 }
 
 /** Tạo JWT token. Mặc định 7 ngày. */

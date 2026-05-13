@@ -80,7 +80,10 @@ export default function ImportPanel() {
       next.delete('prefill');
       setSearchParams(next, { replace: true });
     } catch (err) {
-      console.warn('[ImportPanel] prefill decode fail:', err.message);
+      // Chỉ log trong dev mode (Vite import.meta.env.DEV). Production silent.
+      if (import.meta.env.DEV) {
+        console.warn('[ImportPanel] prefill decode fail:', err.message);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

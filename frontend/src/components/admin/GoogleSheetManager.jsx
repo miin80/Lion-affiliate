@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { sheetApi } from '../../services/googleSheet';
 import { formatVND } from '../../utils/format';
 import PlatformBadge from '../PlatformBadge';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'Tất cả' },
@@ -46,9 +47,10 @@ export default function GoogleSheetManager() {
     })();
   }, []);
 
+  const safeTimeout = useSafeTimeout();
   const flashToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 3500);
+    safeTimeout(() => setToast(''), 3500);
   };
 
   const handleSaveUrl = async () => {

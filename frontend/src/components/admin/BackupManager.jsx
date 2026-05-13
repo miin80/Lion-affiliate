@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import ConfirmModal from './ConfirmModal';
 import { authHeader } from '../../services/auth';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
@@ -12,9 +13,10 @@ export default function BackupManager() {
   const [pendingFile, setPendingFile] = useState(null);
   const [report, setReport] = useState(null);
 
+  const safeTimeout = useSafeTimeout();
   const flash = (type, msg) => {
     setToast({ type, msg });
-    setTimeout(() => setToast({ type: '', msg: '' }), 4500);
+    safeTimeout(() => setToast({ type: '', msg: '' }), 4500);
   };
 
   const downloadAuth = async (path, fallbackName) => {

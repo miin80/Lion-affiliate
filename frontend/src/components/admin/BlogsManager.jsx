@@ -5,6 +5,7 @@ import BlogPreview from './previews/BlogPreview';
 import { ManagerCardListSkeleton } from '../Skeletons';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import DraftBanner from './DraftBanner';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 const EMPTY = {
   id: null, slug: '', title: '', excerpt: '', cover: '', author: 'Admin',
@@ -33,9 +34,10 @@ export default function BlogsManager() {
   };
   useEffect(() => { load(); }, []);
 
+  const safeTimeout = useSafeTimeout();
   const flash = (type, msg) => {
     setToast({ type, msg });
-    setTimeout(() => setToast({ type: '', msg: '' }), 2500);
+    safeTimeout(() => setToast({ type: '', msg: '' }), 2500);
   };
 
   const draftKey = `blog_${editing?.id || 'new'}`;
@@ -177,7 +179,7 @@ export default function BlogsManager() {
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((b) => (
           <div key={b.id} className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${b.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
-            {b.cover && <img src={b.cover} alt="" className="h-20 w-32 shrink-0 rounded-lg object-cover" />}
+            {b.cover && <img src={b.cover} alt="" loading="lazy" className="h-20 w-32 shrink-0 rounded-lg object-cover" />}
             <div className="flex flex-1 flex-col gap-1 text-sm">
               <span className="badge w-fit bg-brand-orange-100 text-brand-orange-700">{b.tag}</span>
               <div className="line-clamp-2 font-semibold">{b.title}</div>

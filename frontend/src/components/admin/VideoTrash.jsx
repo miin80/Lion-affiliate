@@ -11,6 +11,7 @@ export default function VideoTrash() {
         <img
           src={v.thumb || 'https://placehold.co/100x180/f1f5f9/64748b?text=?'}
           alt=""
+          loading="lazy"
           className="h-28 w-20 rounded-lg object-cover grayscale"
         />
       )}

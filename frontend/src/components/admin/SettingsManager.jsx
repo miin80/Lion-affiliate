@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { fetchSiteSettings, saveSiteSettingsApi } from '../../services/api';
 import { DEFAULT_SITE_SETTINGS } from '../../hooks/useSiteSettings';
 import AvatarUploader from './AvatarUploader';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 /**
  * Form chỉnh site settings: profile, socials, buttons, hero.
@@ -40,9 +41,10 @@ export default function SettingsManager() {
     });
   };
 
+  const safeTimeout = useSafeTimeout();
   const flash = (type, msg) => {
     setToast({ type, msg });
-    setTimeout(() => setToast({ type: '', msg: '' }), 3000);
+    safeTimeout(() => setToast({ type: '', msg: '' }), 3000);
   };
 
   const handleSave = async () => {

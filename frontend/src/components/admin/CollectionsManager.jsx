@@ -6,6 +6,7 @@ import DragSortable, { DragHandle } from './DragSortable';
 import { ManagerCardListSkeleton } from '../Skeletons';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import DraftBanner from './DraftBanner';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 const EMPTY = {
   id: null, slug: '', title: '', emoji: '✨', cover: '', desc: '',
@@ -33,9 +34,10 @@ export default function CollectionsManager() {
   };
   useEffect(() => { load(); }, []);
 
+  const safeTimeout = useSafeTimeout();
   const flash = (type, msg) => {
     setToast({ type, msg });
-    setTimeout(() => setToast({ type: '', msg: '' }), 2500);
+    safeTimeout(() => setToast({ type: '', msg: '' }), 2500);
   };
 
   const draftKey = `collection_${editing?.id || 'new'}`;
@@ -186,7 +188,7 @@ export default function CollectionsManager() {
           renderItem={(c, dragProps) => (
             <div className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${c.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
               <DragHandle dragProps={dragProps} className="self-start" />
-              {c.cover && <img src={c.cover} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />}
+              {c.cover && <img src={c.cover} alt="" loading="lazy" className="h-20 w-20 shrink-0 rounded-lg object-cover" />}
               <div className="flex flex-1 flex-col gap-1 text-sm">
                 <div className="font-semibold">{c.emoji} {c.title}</div>
                 <div className="text-[11px] text-brand-ink-500">{c.productSlugs?.length || 0} sản phẩm · #{c.order ?? 0} · {c.status}</div>

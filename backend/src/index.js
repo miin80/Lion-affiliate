@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { scrapeRoute } from './routes/scrape.js';
 import { importProductRoute } from './routes/importProduct.js';
 import {
@@ -74,6 +75,39 @@ app.use(express.json({ limit: '10mb' }));
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'affiliate-backend', time: new Date().toISOString() });
 });
+
+// ============ RATE LIMIT ============
+// Public endpoints: 120 req/phút/IP (đủ cho user thường + bot Google share).
+// Auth endpoints: 20 req/phút/IP (chống brute force login).
+// Admin protected routes: 300 req/phút/IP (admin có thể bulk action).
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Bạn gửi quá nhiều request. Đợi 1 phút rồi thử lại.' },
+});
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Quá nhiều lần thử login. Đợi 1 phút.' },
+});
+const adminLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Quá nhiều request từ admin client. Đợi 1 phút.' },
+});
+
+app.use('/api/auth/', authLimiter);
+app.use('/api/products', publicLimiter); // áp lên /api/products + /api/products/:id (admin sẽ bị adminLimiter nếu apply sau, nhưng publicLimiter cao đủ dùng)
+app.use('/api/site-settings', publicLimiter);
+app.use('/api/analytics/click', publicLimiter);
+app.use('/api/categories/active-with-products', publicLimiter);
+// Note: admin routes (bulk save, scrape, settings PUT) chưa cần limit chặt vì sau requireAuth.
 
 // ============ AUTH ============
 app.post('/api/auth/login', loginRoute);

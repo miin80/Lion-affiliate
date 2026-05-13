@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { categoriesApi } from '../../services/resources';
 import DragSortable, { DragHandle } from './DragSortable';
 import { ManagerCardListSkeleton } from '../Skeletons';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 const EMPTY = { id: null, slug: '', name: '', icon: '✨', order: 99, status: 'active' };
 
@@ -24,9 +25,10 @@ export default function CategoriesManager() {
   };
   useEffect(() => { load(); }, []);
 
+  const safeTimeout = useSafeTimeout();
   const flash = (type, msg) => {
     setToast({ type, msg });
-    setTimeout(() => setToast({ type: '', msg: '' }), 2500);
+    safeTimeout(() => setToast({ type: '', msg: '' }), 2500);
   };
 
   const save = async () => {

@@ -5,6 +5,7 @@ import {
   deleteProductApi,
 } from '../../services/api';
 import { formatVND, formatDate } from '../../utils/format';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 export default function TrashManager() {
   const [list, setList] = useState([]);
@@ -30,9 +31,10 @@ export default function TrashManager() {
     load();
   }, []);
 
+  const safeTimeout = useSafeTimeout();
   const flashToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 2800);
+    safeTimeout(() => setToast(''), 2800);
   };
 
   const restore = async (product) => {

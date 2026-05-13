@@ -10,6 +10,7 @@ import {
 import { formatVND, formatDate } from '../../utils/format';
 import EditProductModal from './EditProductModal';
 import { ManagerCardListSkeleton } from '../Skeletons';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'Tất cả (không tính trash)' },
@@ -66,9 +67,10 @@ export default function ProductManager() {
     load();
   }, []);
 
+  const safeTimeout = useSafeTimeout();
   const flashToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 2800);
+    safeTimeout(() => setToast(''), 2800);
   };
 
   const toggleStatus = async (product) => {

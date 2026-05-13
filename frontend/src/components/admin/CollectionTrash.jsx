@@ -9,7 +9,7 @@ export default function CollectionTrash() {
       title="Thùng rác Bộ sưu tập"
       renderThumb={(c) => (
         c.cover ? (
-          <img src={c.cover} alt="" className="h-24 w-24 rounded-lg object-cover grayscale" />
+          <img src={c.cover} alt="" loading="lazy" className="h-24 w-24 rounded-lg object-cover grayscale" />
         ) : (
           <div className="flex h-24 w-24 items-center justify-center rounded-lg bg-brand-ink-100 text-2xl">
             {c.emoji || '📦'}

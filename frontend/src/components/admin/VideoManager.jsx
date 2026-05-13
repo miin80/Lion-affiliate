@@ -6,6 +6,7 @@ import DragSortable, { DragHandle } from './DragSortable';
 import { ManagerCardListSkeleton } from '../Skeletons';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import DraftBanner from './DraftBanner';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 const EMPTY = {
   id: null,
@@ -48,9 +49,10 @@ export default function VideoManager() {
     load();
   }, []);
 
+  const safeTimeout = useSafeTimeout();
   const flash = (type, msg) => {
     setToast({ type, msg });
-    setTimeout(() => setToast({ type: '', msg: '' }), 2500);
+    safeTimeout(() => setToast({ type: '', msg: '' }), 2500);
   };
 
   const startEdit = (item) => setEditing(item ? { ...item } : { ...EMPTY, order: items.length });
@@ -227,7 +229,7 @@ export default function VideoManager() {
               renderItem={(v, dragProps) => (
                 <article className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${v.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
                   <DragHandle dragProps={dragProps} className="self-start" />
-                  <img src={v.thumb} alt="" className="h-28 w-20 shrink-0 rounded-lg object-cover" />
+                  <img src={v.thumb} alt="" loading="lazy" className="h-28 w-20 shrink-0 rounded-lg object-cover" />
                   <div className="flex flex-1 flex-col gap-1 text-sm">
                     <span className={`badge w-fit ${v.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
                       ● {v.status === 'active' ? 'Đang hiển thị' : 'Đã ẩn'} · #{v.order ?? 0}

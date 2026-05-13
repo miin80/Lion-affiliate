@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { formatDate } from '../../utils/format';
+import { useSafeTimeout } from '../../hooks/useSafeTimeout';
 
 /**
  * Generic Trash tab cho Videos / Collections / Blogs / Categories.
@@ -43,9 +44,10 @@ export default function ResourceTrash({
     load();
   }, []);
 
+  const safeTimeout = useSafeTimeout();
   const flashToast = (msg) => {
     setToast(msg);
-    setTimeout(() => setToast(''), 2500);
+    safeTimeout(() => setToast(''), 2500);
   };
 
   const getName = (item) => item[itemNameField] || item.title || item.name || item.id;
