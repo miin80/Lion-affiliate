@@ -1,0 +1,12 @@
+# Lion Affiliate — robots.txt
+# Cho phép tất cả các bot index trang public.
+# Chặn /admin và /api để không index trang quản trị / API.
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap (cập nhật URL khi đổi domain)
+Sitemap: https://lion-affiliate.vercel.app/sitemap.xml

@@ -4,6 +4,7 @@ import HeroSearch from '../components/HeroSearch';
 import CategoryTabs from '../components/CategoryTabs';
 import ProductGrid from '../components/ProductGrid';
 import ProductModal from '../components/ProductModal';
+import { ProductGridSkeleton } from '../components/Skeletons';
 import { filterAndSort } from '../data/products';
 import { useProducts } from '../hooks/useProducts';
 
@@ -33,7 +34,11 @@ export default function ProductsPage() {
         <div className="mb-3 text-xs text-brand-ink-500">
           {loading ? 'Đang tải...' : `${filtered.length} sản phẩm`}
         </div>
-        <ProductGrid products={filtered} onOpen={setActive} />
+        {loading ? (
+          <ProductGridSkeleton count={8} />
+        ) : (
+          <ProductGrid products={filtered} onOpen={setActive} />
+        )}
       </section>
       <ProductModal product={active} onClose={() => setActive(null)} />
     </>
