@@ -1,38 +1,45 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { logout, getUser } from '../../services/auth';
 
+/**
+ * MENU — mỗi item là 1 route thật. Click → đổi URL.
+ * Sidebar tự highlight active theo pathname qua NavLink isActive.
+ */
 const MENU = [
-  { key: 'dashboard',   icon: '📊', label: 'Dashboard' },
-  { key: 'import',      icon: '📥', label: 'Import sản phẩm' },
-  { key: 'manage',      icon: '🛍',  label: 'Sản phẩm' },
-  { key: 'videos',      icon: '🎬', label: 'Video review' },
-  { key: 'collections', icon: '📚', label: 'Bộ sưu tập' },
-  { key: 'categories',  icon: '🏷', label: 'Danh mục' },
-  { key: 'blogs',       icon: '📝', label: 'Blog' },
-  { key: 'sheet',       icon: '📊', label: 'Google Sheet' },
-  { key: 'settings',    icon: '⚙️', label: 'Cài đặt website' },
+  { to: '/admin/dashboard',          icon: '📊', label: 'Dashboard' },
+  { to: '/admin/import-san-pham',    icon: '📥', label: 'Import sản phẩm' },
+  { to: '/admin/san-pham',           icon: '🛍',  label: 'Sản phẩm' },
+  { to: '/admin/video-review',       icon: '🎬', label: 'Video review' },
+  { to: '/admin/bo-suu-tap',         icon: '📚', label: 'Bộ sưu tập' },
+  { to: '/admin/danh-muc',           icon: '🏷', label: 'Danh mục' },
+  { to: '/admin/blog',               icon: '📝', label: 'Blog' },
+  { to: '/admin/google-sheet',       icon: '📊', label: 'Google Sheet' },
+  { to: '/admin/cai-dat-website',    icon: '⚙️', label: 'Cài đặt website' },
   { divider: true, label: 'Thùng rác' },
-  { key: 'trash',       icon: '🗑',  label: 'SP đã xoá' },
-  { key: 'video-trash', icon: '🗑',  label: 'Video đã xoá' },
-  { key: 'coll-trash',  icon: '🗑',  label: 'BST đã xoá' },
-  { key: 'blog-trash',  icon: '🗑',  label: 'Blog đã xoá' },
-  { key: 'cat-trash',   icon: '🗑',  label: 'Danh mục đã xoá' },
+  { to: '/admin/trash/san-pham',     icon: '🗑',  label: 'SP đã xoá' },
+  { to: '/admin/trash/video',        icon: '🗑',  label: 'Video đã xoá' },
+  { to: '/admin/trash/bo-suu-tap',   icon: '🗑',  label: 'BST đã xoá' },
+  { to: '/admin/trash/blog',         icon: '🗑',  label: 'Blog đã xoá' },
+  { to: '/admin/trash/danh-muc',     icon: '🗑',  label: 'Danh mục đã xoá' },
 ];
 
 /**
  * Sidebar layout cho /admin.
  *  - Desktop: sidebar cố định bên trái 240px
  *  - Mobile: sidebar drawer (toggle bằng hamburger)
+ *  - Navigation: route-based (NavLink) — mỗi tab có URL riêng, reload giữ page.
  */
-export default function AdminLayout({ activeTab, onTabChange, children }) {
+export default function AdminLayout({ children }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = getUser();
   const [open, setOpen] = useState(false);
 
+  // Đóng drawer mobile khi pathname đổi (user click tab khác).
   useEffect(() => {
-    setOpen(false); // close drawer khi đổi tab
-  }, [activeTab]);
+    setOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = () => {
     logout();
@@ -41,7 +48,7 @@ export default function AdminLayout({ activeTab, onTabChange, children }) {
 
   return (
     <div className="flex min-h-screen bg-brand-ink-50">
-      {/* MOBILE HEADER (sm:hidden) — gọn: chỉ hamburger + tiêu đề. Logout chuyển hẳn vào sidebar để tránh public-ish action ở góc trên. */}
+      {/* MOBILE HEADER (sm:hidden) — chỉ hamburger + title, logout chuyển hết vào sidebar */}
       <header className="fixed inset-x-0 top-0 z-30 flex items-center gap-3 border-b border-brand-ink-200 bg-white px-4 py-3 sm:hidden">
         <button
           onClick={() => setOpen(!open)}
@@ -67,7 +74,7 @@ export default function AdminLayout({ activeTab, onTabChange, children }) {
           </div>
         </div>
 
-        {/* Menu */}
+        {/* Menu — NavLink tự highlight active theo URL */}
         <nav className="p-3">
           {MENU.map((item, i) => {
             if (item.divider) {
@@ -80,21 +87,26 @@ export default function AdminLayout({ activeTab, onTabChange, children }) {
                 </div>
               );
             }
-            const isActive = activeTab === item.key;
             return (
-              <button
-                key={item.key}
-                onClick={() => onTabChange(item.key)}
-                className={`mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${
-                  isActive
-                    ? 'bg-brand-orange-500 text-white shadow-cta'
-                    : 'text-brand-ink-700 hover:bg-brand-ink-100'
-                }`}
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold transition ${
+                    isActive
+                      ? 'bg-brand-orange-500 text-white shadow-cta'
+                      : 'text-brand-ink-700 hover:bg-brand-ink-100'
+                  }`
+                }
               >
-                <span className="text-base">{item.icon}</span>
-                <span className="flex-1">{item.label}</span>
-                {isActive && <span className="text-xs">→</span>}
-              </button>
+                {({ isActive }) => (
+                  <>
+                    <span className="text-base">{item.icon}</span>
+                    <span className="flex-1">{item.label}</span>
+                    {isActive && <span className="text-xs">→</span>}
+                  </>
+                )}
+              </NavLink>
             );
           })}
         </nav>

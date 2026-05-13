@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchAdminProducts } from '../../services/api';
 import { fetchAnalyticsSummary } from '../../services/analytics';
 import { videosApi, collectionsApi, blogsApi } from '../../services/resources';
@@ -6,9 +7,10 @@ import { videosApi, collectionsApi, blogsApi } from '../../services/resources';
 /**
  * Dashboard — tổng quan stats + quick actions.
  *  - Cards: tổng/active/hidden/trash sản phẩm, video, collection, blog, click
- *  - Quick actions: chuyển sang tab tương ứng
+ *  - Quick actions: navigate sang URL tương ứng (route-based, không còn tab state)
  */
-export default function Dashboard({ onTabChange }) {
+export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     products: { total: 0, active: 0, hidden: 0, trash: 0 },
     videos: 0,
@@ -113,11 +115,11 @@ export default function Dashboard({ onTabChange }) {
           ⚡ Quick Actions
         </h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <ActionCard icon="📥" label="Import sản phẩm" onClick={() => onTabChange('import')} />
-          <ActionCard icon="📊" label="Sync Google Sheet" onClick={() => onTabChange('sheet')} />
-          <ActionCard icon="🎬" label="Thêm video" onClick={() => onTabChange('videos')} />
-          <ActionCard icon="📚" label="Tạo bộ sưu tập" onClick={() => onTabChange('collections')} />
-          <ActionCard icon="⚙️" label="Cài đặt website" onClick={() => onTabChange('settings')} />
+          <ActionCard icon="📥" label="Import sản phẩm" onClick={() => navigate('/admin/import-san-pham')} />
+          <ActionCard icon="📊" label="Sync Google Sheet" onClick={() => navigate('/admin/google-sheet')} />
+          <ActionCard icon="🎬" label="Thêm video" onClick={() => navigate('/admin/video-review')} />
+          <ActionCard icon="📚" label="Tạo bộ sưu tập" onClick={() => navigate('/admin/bo-suu-tap')} />
+          <ActionCard icon="⚙️" label="Cài đặt website" onClick={() => navigate('/admin/cai-dat-website')} />
         </div>
       </section>
 

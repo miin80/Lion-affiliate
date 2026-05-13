@@ -50,10 +50,11 @@ function AppShell() {
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
 
-              {/* Auth & Admin — KHÔNG có public chrome bao quanh */}
+              {/* Auth & Admin — KHÔNG có public chrome bao quanh.
+                  /admin/* để Admin có thể nested route từng sub-page riêng. */}
               <Route path="/admin/login" element={<Login />} />
               <Route
-                path="/admin"
+                path="/admin/*"
                 element={
                   <ProtectedRoute>
                     <Admin />
