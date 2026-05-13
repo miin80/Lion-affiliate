@@ -52,6 +52,17 @@ export async function importProductRoute(req, res) {
         description: scraped.description || '',
         price: scraped.price ?? null,
         originalPrice: scraped.originalPrice ?? null,
+        // Range giá Shopee variant — null cho platform khác (frontend tự fallback)
+        priceMin: scraped.priceMin ?? null,
+        priceMax: scraped.priceMax ?? null,
+        oldPriceMin: scraped.oldPriceMin ?? null,
+        oldPriceMax: scraped.oldPriceMax ?? null,
+        discountPercent: scraped.discountPercent ?? null,
+        rating: scraped.rating ?? null,
+        ratingCount: scraped.ratingCount ?? null,
+        sold: scraped.sold ?? null,
+        soldText: scraped.soldText || null,
+        category: scraped.category || null,
         image: scraped.images?.[0] || null,            // cover
         gallery: scraped.images?.slice(1) || [],       // additional
         images: scraped.images || [],                  // full array (compat)

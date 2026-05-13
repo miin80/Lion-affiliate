@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import LazyImage from './LazyImage';
 import PlatformBadge from './PlatformBadge';
 import Rating from './Rating';
-import { formatVND, formatCompact, discountPercent } from '../utils/format';
+import { formatVND, formatCompact, formatPriceRange, resolveDiscount } from '../utils/format';
 import { getAffiliateUrl } from '../config/affiliate';
 import { CloseIcon, ArrowRight, CheckCircle } from './icons';
 import { trackClick } from '../services/analytics';
@@ -130,24 +130,38 @@ export default function ProductModal({ product, onClose }) {
 
                   <Rating value={product.rating} count={product.reviewCount} size="lg" />
 
-                  <div className="flex flex-wrap items-end gap-2">
-                    <span className="text-2xl font-extrabold text-brand-orange-600">
-                      {formatVND(product.price)}
-                    </span>
-                    {product.originalPrice > product.price && (
-                      <>
-                        <span className="text-sm text-brand-ink-400 line-through">
-                          {formatVND(product.originalPrice)}
+                  {(() => {
+                    const priceLabel = formatPriceRange(product.priceMin, product.priceMax, product.price);
+                    const oldPriceLabel = formatPriceRange(product.oldPriceMin, product.oldPriceMax, product.originalPrice);
+                    const hasOldPrice =
+                      !!oldPriceLabel &&
+                      ((product.oldPriceMin || product.originalPrice) >
+                        (product.priceMin || product.price));
+                    const discount = resolveDiscount(product);
+                    return (
+                      <div className="flex flex-wrap items-end gap-2">
+                        <span className="text-2xl font-extrabold text-brand-orange-600">
+                          {priceLabel || formatVND(product.price)}
                         </span>
-                        <span className="badge bg-brand-pink-500 text-white">
-                          -{discountPercent(product.price, product.originalPrice)}%
-                        </span>
-                      </>
-                    )}
-                  </div>
+                        {hasOldPrice && (
+                          <span className="text-sm text-brand-ink-400 line-through">
+                            {oldPriceLabel}
+                          </span>
+                        )}
+                        {discount > 0 && (
+                          <span className="badge bg-brand-pink-500 text-white">-{discount}%</span>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   <div className="text-xs text-brand-ink-500">
-                    Đã bán {formatCompact(product.sold)} · {product.tags?.join(' · ')}
+                    {product.soldText
+                      ? `Đã bán ${product.soldText}`
+                      : product.sold
+                      ? `Đã bán ${formatCompact(product.sold)}`
+                      : ''}
+                    {product.tags?.length ? ` · ${product.tags.join(' · ')}` : ''}
                   </div>
 
                   {product.fullDesc && (

@@ -26,6 +26,23 @@ function parseIds(url) {
   return null;
 }
 
+// Shopee giá nhân với 1e5 — chia ra đồng VND.
+function priceFrom(raw) {
+  if (typeof raw !== 'number' || raw <= 0) return null;
+  return raw / 1e5;
+}
+
+// "20800" → "20k+", "1500000" → "1M+", "150" → "150". Gần với cách Shopee hiển thị.
+function formatSold(n) {
+  const v = Number(n) || 0;
+  if (v >= 1_000_000) {
+    const x = v / 1_000_000;
+    return `${x >= 10 ? Math.floor(x) : x.toFixed(1).replace('.0', '')}M+`;
+  }
+  if (v >= 1000) return `${Math.floor(v / 1000)}k+`;
+  return String(v);
+}
+
 async function tryShopeeApi(url) {
   const ids = parseIds(url);
   if (!ids) {
@@ -53,25 +70,73 @@ async function tryShopeeApi(url) {
       console.warn('[shopee] API response không có data field');
       return null;
     }
+
     const cdn = 'https://cf.shopee.vn/file/';
     const images = (item.images || []).map((id) => `${cdn}${id}`);
-    // Shopee giá nhân với 1e5
-    const price = item.price ? item.price / 1e5 : null;
-    const priceBefore = item.price_before_discount
-      ? item.price_before_discount / 1e5
-      : null;
+
+    // Giá hiện tại
+    const price = priceFrom(item.price);
+    const priceMin = priceFrom(item.price_min);
+    const priceMax = priceFrom(item.price_max);
+    // Giá gốc (gạch ngang)
+    const originalPrice = priceFrom(item.price_before_discount);
+    const oldPriceMin = priceFrom(item.price_min_before_discount);
+    const oldPriceMax = priceFrom(item.price_max_before_discount);
+
+    // Discount % — Shopee `raw_discount` đã là số nguyên 0-100 (vd 13 = -13%).
+    const discountPercent =
+      typeof item.raw_discount === 'number' && item.raw_discount > 0
+        ? item.raw_discount
+        : null;
+
+    // Rating
+    const ratingStar = item.item_rating?.rating_star;
+    const rating =
+      typeof ratingStar === 'number' && ratingStar > 0
+        ? Math.round(ratingStar * 10) / 10
+        : null;
+    const rcArr = item.item_rating?.rating_count || [];
+    // rcArr[0] = total all reviews
+    const ratingCount = Array.isArray(rcArr) && rcArr.length ? rcArr[0] || 0 : 0;
+
+    // Sold
+    const sold = item.historical_sold ?? item.sold ?? 0;
+    const soldText = formatSold(sold);
+
+    // Category — array of {catid, display_name}; lấy leaf cuối cùng.
+    const cats = item.categories || [];
+    const category = cats.length ? cats[cats.length - 1]?.display_name || null : null;
+
     const videoUrl =
       item.video_info_list?.[0]?.default_format?.url ||
       item.video_info_list?.[0]?.formats?.[0]?.url ||
       null;
-    console.log(`[shopee] ✅ Got product: ${item.name?.slice(0, 50)}`);
+
+    console.log(
+      `[shopee] ✅ Got product: ${item.name?.slice(0, 50)} | price=${price} range=${priceMin}-${priceMax} disc=${discountPercent} rating=${rating} sold=${soldText}`
+    );
+
     return {
       title: item.name || '',
       description: (item.description || '').slice(0, 800),
       images,
       video: videoUrl,
+      // Giá đơn giá (cheapest variant) — backward compat
       price,
-      originalPrice: priceBefore,
+      originalPrice,
+      // Giá range (variant) — mới
+      priceMin,
+      priceMax,
+      oldPriceMin,
+      oldPriceMax,
+      // Badge giảm giá Shopee hiển thị (raw value, ưu tiên hơn discount tính từ price/originalPrice)
+      discountPercent,
+      // Rating + sold + category — mới
+      rating,
+      ratingCount,
+      sold,
+      soldText,
+      category,
     };
   } catch (err) {
     console.warn('[shopee] API call failed:', err.response?.status, err.message);

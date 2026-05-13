@@ -15,6 +15,12 @@ const EMPTY = {
   description: '',
   price: '',
   originalPrice: '',
+  priceMin: '',
+  priceMax: '',
+  oldPriceMin: '',
+  oldPriceMax: '',
+  discountPercent: '',
+  soldText: '',
   images: [],
   videos: [],
   category: 'gia-dung',
@@ -79,6 +85,16 @@ export default function ImportPanel() {
         description: p.description || draft.description,
         price: p.price || draft.price || '',
         originalPrice: p.originalPrice || draft.originalPrice || '',
+        // Range giá Shopee variant
+        priceMin: p.priceMin ?? draft.priceMin ?? '',
+        priceMax: p.priceMax ?? draft.priceMax ?? '',
+        oldPriceMin: p.oldPriceMin ?? draft.oldPriceMin ?? '',
+        oldPriceMax: p.oldPriceMax ?? draft.oldPriceMax ?? '',
+        discountPercent: p.discountPercent ?? draft.discountPercent ?? '',
+        rating: typeof p.rating === 'number' ? p.rating : draft.rating,
+        soldText: p.soldText || draft.soldText || '',
+        sold: typeof p.sold === 'number' ? p.sold : draft.sold,
+        reviewCount: typeof p.ratingCount === 'number' ? p.ratingCount : draft.reviewCount,
         images: p.images?.length ? p.images : draft.images,
         videos: p.videos?.length ? p.videos : draft.videos,
       };
@@ -88,10 +104,14 @@ export default function ImportPanel() {
       const missing = [];
       if (!p.title) missing.push('tên');
       if (!p.images?.length) missing.push('ảnh');
-      if (!p.price) missing.push('giá');
+      // Coi là thiếu giá khi cả single price LẪN range đều không có
+      const hasPrice = p.price || p.priceMin || p.priceMax;
+      if (!hasPrice) missing.push('giá');
       if (missing.length > 0 || resp.fallback) {
         setWarning(
-          `Không tự lấy đủ dữ liệu: thiếu ${missing.join(', ') || 'một số trường'}. Vui lòng nhập / sửa thủ công bên dưới — bạn vẫn lưu sản phẩm được.`
+          missing.includes('giá')
+            ? 'Không tự lấy được giá, vui lòng nhập thủ công.'
+            : `Không tự lấy đủ dữ liệu: thiếu ${missing.join(', ') || 'một số trường'}. Vui lòng nhập / sửa thủ công bên dưới — bạn vẫn lưu sản phẩm được.`
         );
       }
     } catch (err) {
@@ -125,6 +145,11 @@ export default function ImportPanel() {
         ...draft,
         price: Number(draft.price) || null,
         originalPrice: Number(draft.originalPrice) || null,
+        priceMin: Number(draft.priceMin) || null,
+        priceMax: Number(draft.priceMax) || null,
+        oldPriceMin: Number(draft.oldPriceMin) || null,
+        oldPriceMax: Number(draft.oldPriceMax) || null,
+        discountPercent: Number(draft.discountPercent) || null,
         rating: Number(draft.rating) || 0,
         platform: platform?.key || 'other',
       };
@@ -235,27 +260,60 @@ export default function ImportPanel() {
                 ))}
               </select>
             </Field>
-            <Field label="Giá (VND)">
+            <Field label="Giá Min (VND)" hint="Giá thấp nhất nếu có nhiều biến thể">
               <input
                 type="number"
-                value={draft.price}
-                onChange={(e) => update({ price: e.target.value })}
+                value={draft.priceMin || draft.price}
+                onChange={(e) => update({ priceMin: e.target.value, price: e.target.value })}
                 className="input-base"
-                placeholder="159000"
+                placeholder="91000"
               />
-              {draft.price > 0 && (
+              {(draft.priceMin || draft.price) > 0 && (
                 <div className="mt-1 text-xs text-brand-orange-600">
-                  Hiển thị: {formatVND(Number(draft.price))}
+                  Hiển thị: {formatVND(Number(draft.priceMin || draft.price))}
                 </div>
               )}
             </Field>
-            <Field label="Giá gốc (gạch ngang)">
+            <Field label="Giá Max (VND)" hint="Để trống nếu chỉ 1 giá">
               <input
                 type="number"
-                value={draft.originalPrice}
-                onChange={(e) => update({ originalPrice: e.target.value })}
+                value={draft.priceMax || ''}
+                onChange={(e) => update({ priceMax: e.target.value })}
                 className="input-base"
-                placeholder="290000"
+                placeholder="238000"
+              />
+              {Number(draft.priceMax) > Number(draft.priceMin || draft.price) && (
+                <div className="mt-1 text-xs text-brand-orange-600">
+                  Range: {formatVND(Number(draft.priceMin || draft.price))} - {formatVND(Number(draft.priceMax))}
+                </div>
+              )}
+            </Field>
+            <Field label="Giá gốc Min (gạch ngang)">
+              <input
+                type="number"
+                value={draft.oldPriceMin || draft.originalPrice}
+                onChange={(e) => update({ oldPriceMin: e.target.value, originalPrice: e.target.value })}
+                className="input-base"
+                placeholder="105000"
+              />
+            </Field>
+            <Field label="Giá gốc Max" hint="Để trống nếu chỉ 1 giá gốc">
+              <input
+                type="number"
+                value={draft.oldPriceMax || ''}
+                onChange={(e) => update({ oldPriceMax: e.target.value })}
+                className="input-base"
+                placeholder="276000"
+              />
+            </Field>
+            <Field label="Discount %" hint="Badge -X% (Shopee tự scrape)">
+              <input
+                type="number"
+                min="0" max="100"
+                value={draft.discountPercent || ''}
+                onChange={(e) => update({ discountPercent: e.target.value })}
+                className="input-base"
+                placeholder="13"
               />
             </Field>
             <Field label="Rating (0-5)">
@@ -339,11 +397,17 @@ export default function ImportPanel() {
                   slug: 'preview',
                   title: draft.title || '(Tên sản phẩm)',
                   shortDesc: draft.description?.slice(0, 80) || '',
-                  price: Number(draft.price) || 0,
-                  originalPrice: Number(draft.originalPrice) || 0,
+                  price: Number(draft.price) || Number(draft.priceMin) || 0,
+                  originalPrice: Number(draft.originalPrice) || Number(draft.oldPriceMin) || 0,
+                  priceMin: Number(draft.priceMin) || null,
+                  priceMax: Number(draft.priceMax) || null,
+                  oldPriceMin: Number(draft.oldPriceMin) || null,
+                  oldPriceMax: Number(draft.oldPriceMax) || null,
+                  discountPercent: Number(draft.discountPercent) || null,
                   rating: Number(draft.rating) || 0,
-                  reviewCount: 0,
-                  sold: 0,
+                  reviewCount: Number(draft.reviewCount) || 0,
+                  sold: Number(draft.sold) || 0,
+                  soldText: draft.soldText || '',
                   images: draft.images.length ? draft.images : ['https://placehold.co/600x600/f1f5f9/64748b?text=No+image'],
                   video: draft.videos[0] || null,
                   affiliateUrl: draft.affiliateUrl || '#',

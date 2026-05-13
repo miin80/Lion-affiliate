@@ -59,6 +59,17 @@ export async function scrape(url) {
     description: data.description || '',
     price: data.price ?? null,
     originalPrice: data.originalPrice ?? null,
+    // Range giá (Shopee variant) — undefined cho platform khác
+    priceMin: data.priceMin ?? null,
+    priceMax: data.priceMax ?? null,
+    oldPriceMin: data.oldPriceMin ?? null,
+    oldPriceMax: data.oldPriceMax ?? null,
+    discountPercent: data.discountPercent ?? null,
+    rating: data.rating ?? null,
+    ratingCount: data.ratingCount ?? null,
+    sold: data.sold ?? null,
+    soldText: data.soldText || null,
+    category: data.category || null,
     images: Array.isArray(data.images) ? data.images.filter(Boolean) : [],
     video: data.video || null,
   };

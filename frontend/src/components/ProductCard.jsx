@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import LazyImage from './LazyImage';
 import PlatformBadge from './PlatformBadge';
 import Rating from './Rating';
-import { formatVND, formatCompact, discountPercent } from '../utils/format';
+import { formatVND, formatCompact, formatPriceRange, resolveDiscount } from '../utils/format';
 import { getAffiliateUrl } from '../config/affiliate';
 import { PlayIcon, ArrowRight } from './icons';
 import { trackClick } from '../services/analytics';
@@ -13,8 +13,21 @@ import { trackClick } from '../services/analytics';
  * - Nút "Mua ngay" mở direct link affiliate (không qua modal) - tối ưu conversion.
  */
 export default function ProductCard({ product, index = 0, onOpen }) {
-  const discount = discountPercent(product.price, product.originalPrice);
+  const discount = resolveDiscount(product);
   const cover = product.images?.[0];
+  // Giá hiện tại: ưu tiên range priceMin/priceMax (Shopee variant), fallback single price
+  const priceLabel = formatPriceRange(product.priceMin, product.priceMax, product.price);
+  // Giá gốc gạch ngang: ưu tiên range oldPriceMin/oldPriceMax, fallback originalPrice
+  const oldPriceLabel = formatPriceRange(
+    product.oldPriceMin,
+    product.oldPriceMax,
+    product.originalPrice
+  );
+  const hasOldPrice =
+    !!oldPriceLabel &&
+    (product.oldPriceMin > (product.priceMin || product.price) ||
+      product.originalPrice > product.price);
+  const soldDisplay = product.soldText || (product.sold ? formatCompact(product.sold) : null);
   // Quy tắc: nút Mua dùng affiliateUrl (đã gắn mã của user).
   // Nếu chưa có (data cũ), wrap sourceUrl bằng config affiliate. KHÔNG bao giờ link tới sourceUrl trần.
   const buyUrl =
@@ -94,20 +107,22 @@ export default function ProductCard({ product, index = 0, onOpen }) {
 
         <Rating value={product.rating} count={product.reviewCount} />
 
-        <div className="mt-1 flex items-end justify-between">
-          <div>
-            <div className="text-base font-extrabold text-brand-orange-600 sm:text-lg">
-              {formatVND(product.price)}
+        <div className="mt-1 flex items-end justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-base font-extrabold text-brand-orange-600 sm:text-lg">
+              {priceLabel || formatVND(product.price)}
             </div>
-            {product.originalPrice > product.price && (
-              <div className="text-[10px] text-brand-ink-400 line-through sm:text-xs">
-                {formatVND(product.originalPrice)}
+            {hasOldPrice && (
+              <div className="truncate text-[10px] text-brand-ink-400 line-through sm:text-xs">
+                {oldPriceLabel}
               </div>
             )}
           </div>
-          <div className="text-right text-[10px] text-brand-ink-500 sm:text-xs">
-            Đã bán {formatCompact(product.sold)}
-          </div>
+          {soldDisplay && (
+            <div className="shrink-0 text-right text-[10px] text-brand-ink-500 sm:text-xs">
+              Đã bán {soldDisplay}
+            </div>
+          )}
         </div>
 
         {/* CTA group */}

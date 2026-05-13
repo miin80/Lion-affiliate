@@ -55,6 +55,12 @@ export default function EditProductModal({ product, onClose, onSaved }) {
       badges: Array.isArray(product.badges) ? product.badges : [],
       price: product.price || '',
       originalPrice: product.originalPrice || '',
+      priceMin: product.priceMin || '',
+      priceMax: product.priceMax || '',
+      oldPriceMin: product.oldPriceMin || '',
+      oldPriceMax: product.oldPriceMax || '',
+      discountPercent: product.discountPercent || '',
+      soldText: product.soldText || '',
       rating: product.rating || 4.8,
     });
     setError('');
@@ -99,6 +105,11 @@ export default function EditProductModal({ product, onClose, onSaved }) {
         ...draft,
         price: Number(draft.price) || null,
         originalPrice: Number(draft.originalPrice) || null,
+        priceMin: Number(draft.priceMin) || null,
+        priceMax: Number(draft.priceMax) || null,
+        oldPriceMin: Number(draft.oldPriceMin) || null,
+        oldPriceMax: Number(draft.oldPriceMax) || null,
+        discountPercent: Number(draft.discountPercent) || null,
         rating: Number(draft.rating) || 0,
       };
       const saved = await saveProductApi(payload);
@@ -185,20 +196,45 @@ export default function EditProductModal({ product, onClose, onSaved }) {
                     ))}
                   </select>
                 </Field>
-                <Field label="Giá (VND)">
+                <Field label="Giá Min (VND)" hint="Giá thấp nhất / current price">
                   <input
                     type="number"
                     className="input-base"
-                    value={draft.price}
-                    onChange={(e) => update({ price: e.target.value })}
+                    value={draft.priceMin || draft.price}
+                    onChange={(e) => update({ priceMin: e.target.value, price: e.target.value })}
                   />
                 </Field>
-                <Field label="Giá gốc">
+                <Field label="Giá Max" hint="Bỏ trống nếu chỉ 1 giá">
                   <input
                     type="number"
                     className="input-base"
-                    value={draft.originalPrice}
-                    onChange={(e) => update({ originalPrice: e.target.value })}
+                    value={draft.priceMax || ''}
+                    onChange={(e) => update({ priceMax: e.target.value })}
+                  />
+                </Field>
+                <Field label="Giá gốc Min (gạch ngang)">
+                  <input
+                    type="number"
+                    className="input-base"
+                    value={draft.oldPriceMin || draft.originalPrice}
+                    onChange={(e) => update({ oldPriceMin: e.target.value, originalPrice: e.target.value })}
+                  />
+                </Field>
+                <Field label="Giá gốc Max" hint="Bỏ trống nếu chỉ 1 giá gốc">
+                  <input
+                    type="number"
+                    className="input-base"
+                    value={draft.oldPriceMax || ''}
+                    onChange={(e) => update({ oldPriceMax: e.target.value })}
+                  />
+                </Field>
+                <Field label="Discount %" hint="Badge -X%; để trống = tự tính">
+                  <input
+                    type="number"
+                    min="0" max="100"
+                    className="input-base"
+                    value={draft.discountPercent || ''}
+                    onChange={(e) => update({ discountPercent: e.target.value })}
                   />
                 </Field>
                 <Field label="Affiliate URL *" hint="Link nút Mua. Khách bấm = bạn ăn hoa hồng.">

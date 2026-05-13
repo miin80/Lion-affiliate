@@ -5,7 +5,7 @@ import LazyImage from '../components/LazyImage';
 import PlatformBadge from '../components/PlatformBadge';
 import Rating from '../components/Rating';
 import { CheckCircle, ArrowRight } from '../components/icons';
-import { formatVND, formatCompact, discountPercent } from '../utils/format';
+import { formatVND, formatCompact, formatPriceRange, resolveDiscount } from '../utils/format';
 import { getAffiliateUrl } from '../config/affiliate';
 import { getProductBySlug } from '../data/products';
 import ProductCard from '../components/ProductCard';
@@ -31,7 +31,12 @@ export default function ProductDetail() {
     );
   }
 
-  const discount = discountPercent(product.price, product.originalPrice);
+  const discount = resolveDiscount(product);
+  const priceLabel = formatPriceRange(product.priceMin, product.priceMax, product.price);
+  const oldPriceLabel = formatPriceRange(product.oldPriceMin, product.oldPriceMax, product.originalPrice);
+  const hasOldPrice =
+    !!oldPriceLabel &&
+    ((product.oldPriceMin || product.originalPrice) > (product.priceMin || product.price));
   const related = products
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
@@ -118,16 +123,21 @@ export default function ProductDetail() {
 
           <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-gradient-soft p-4 ring-1 ring-brand-ink-100">
             <span className="text-3xl font-extrabold text-brand-orange-600">
-              {formatVND(product.price)}
+              {priceLabel || formatVND(product.price)}
             </span>
-            {product.originalPrice > product.price && (
+            {hasOldPrice && (
               <span className="text-base text-brand-ink-400 line-through">
-                {formatVND(product.originalPrice)}
+                {oldPriceLabel}
               </span>
             )}
-            <span className="ml-auto text-xs text-brand-ink-500">
-              Đã bán {formatCompact(product.sold)}
-            </span>
+            {discount > 0 && (
+              <span className="badge bg-brand-pink-500 text-white">-{discount}%</span>
+            )}
+            {(product.soldText || product.sold) && (
+              <span className="ml-auto text-xs text-brand-ink-500">
+                Đã bán {product.soldText || formatCompact(product.sold)}
+              </span>
+            )}
           </div>
 
           {product.fullDesc && (
