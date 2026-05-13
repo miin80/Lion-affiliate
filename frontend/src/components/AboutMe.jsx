@@ -47,7 +47,7 @@ export default function AboutMe() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="mx-auto max-w-5xl overflow-hidden rounded-3xl bg-gradient-soft p-5 ring-1 ring-brand-ink-100 sm:p-7"
+        className="mx-auto max-w-[1200px] overflow-hidden rounded-3xl bg-gradient-soft p-5 ring-1 ring-brand-ink-100 sm:px-14 sm:py-12"
       >
         {/* Header — title to hơn, font-weight 700 (bold), spacing emoji↔text rõ ràng */}
         <div className="text-center">
@@ -83,10 +83,10 @@ export default function AboutMe() {
           {highlights.map((h, i) => (
             <div
               key={i}
-              className="flex flex-col items-center gap-1 rounded-2xl bg-gradient-to-br from-white via-white to-brand-orange-50/60 p-3 text-center shadow-soft ring-1 ring-brand-ink-100 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover hover:ring-brand-orange-200 sm:gap-1.5 sm:p-4"
+              className="flex flex-col items-center gap-1.5 rounded-2xl bg-gradient-to-br from-white via-white to-brand-orange-50/60 p-4 text-center shadow-soft ring-1 ring-brand-ink-100 transition-all duration-200 hover:-translate-y-1 hover:shadow-card-hover hover:ring-brand-orange-200 sm:gap-2 sm:p-6"
             >
-              <span className="text-2xl sm:text-[28px]" aria-hidden>{h.icon}</span>
-              <span className="text-[12px] font-bold leading-tight text-brand-ink-800 sm:text-sm">
+              <span className="text-2xl sm:text-[34px]" aria-hidden>{h.icon}</span>
+              <span className="text-[12px] font-bold leading-tight text-brand-ink-800 sm:text-base">
                 {h.text}
               </span>
               {h.sub && (

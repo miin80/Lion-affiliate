@@ -35,11 +35,10 @@ export default function Footer() {
     : DEFAULT_FOOTER_STATS;
   const visibleStats = footerStats.filter((s) => s && String(s.value || '').trim());
   const year = new Date().getFullYear();
-  // bg #fcfcfc + border-top #f1f1f1 — tách layer footer cực nhẹ, không
-  // chìm vào body trắng (#fff) nhưng cũng không đậm tới mức làm footer
-  // nặng nề. Spec user request.
+  // bg #fafafa + border-top #eee — layer footer rõ ràng hơn, tách hẳn
+  // khỏi body trắng nhưng vẫn nhẹ nhàng (không xám đậm).
   return (
-    <footer className="mt-4 border-t border-[#f1f1f1] bg-[#fcfcfc] pb-24 sm:mt-10 sm:pb-10">
+    <footer className="mt-4 border-t border-[#eee] bg-[#fafafa] pb-24 sm:mt-10 sm:pb-10">
       <div className="container-page py-5 sm:py-8">
         {/* Social proof — chỉ hiện khi admin set ít nhất 1 stat */}
         {visibleStats.length > 0 && (
@@ -151,7 +150,9 @@ export default function Footer() {
         </div>
 
         {settings.disclosure && (
-          <div className="mt-10 rounded-2xl bg-white p-4 ring-1 ring-brand-ink-100">
+          /* max-w-[1000px] mx-auto — dòng disclosure desktop không trải dài
+             hết container 1280px → đọc dễ hơn. */
+          <div className="mx-auto mt-10 max-w-[1000px] rounded-2xl bg-white p-4 ring-1 ring-brand-ink-100">
             <div className="text-xs font-bold uppercase tracking-wide text-brand-ink-700">
               🔔 Tiết lộ liên kết tiếp thị (Affiliate Disclosure)
             </div>
