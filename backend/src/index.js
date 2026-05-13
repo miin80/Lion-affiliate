@@ -109,6 +109,24 @@ app.use('/api/analytics/click', publicLimiter);
 app.use('/api/categories/active-with-products', publicLimiter);
 // Note: admin routes (bulk save, scrape, settings PUT) chưa cần limit chặt vì sau requireAuth.
 
+// ============ CACHE-CONTROL cho public GET routes ============
+// 60s cache: frontend load home/products lặp lại không spam backend → giảm tải +
+// cải thiện latency. Mutation (POST/PUT/PATCH/DELETE) tự động bỏ qua.
+// CDN-friendly: Vercel edge có thể cache thêm bằng s-maxage.
+function publicCacheControl(req, res, next) {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=30');
+  }
+  next();
+}
+app.use('/api/products', publicCacheControl);
+app.use('/api/site-settings', publicCacheControl);
+app.use('/api/categories/active-with-products', publicCacheControl);
+app.use('/api/videos', publicCacheControl);
+app.use('/api/collections', publicCacheControl);
+app.use('/api/blogs', publicCacheControl);
+app.use('/api/categories', publicCacheControl);
+
 // ============ AUTH ============
 app.post('/api/auth/login', loginRoute);
 app.get('/api/auth/me', meRoute);

@@ -8,6 +8,7 @@ import {
   bulkSetStatus,
 } from '../store/products.js';
 import { scrape } from '../scrapers/index.js';
+import { validateProduct } from '../shared/productSchema.js';
 
 /** GET /api/products — chỉ trả sản phẩm status=active (public). */
 export async function listRoute(_req, res) {
@@ -55,8 +56,9 @@ export async function bulkSaveRoute(req, res) {
     for (let i = 0; i < list.length; i++) {
       const p = list[i] || {};
       try {
-        if (!p.title) throw new Error('Thiếu title');
-        if (!p.affiliateUrl) throw new Error('Thiếu affiliateUrl');
+        // Validate qua schema chung
+        const v = validateProduct(p);
+        if (!v.ok) throw new Error(v.errors.join('; '));
         if (!Array.isArray(p.images)) p.images = p.image ? [p.image] : [];
         if (!Array.isArray(p.tags)) p.tags = [];
         if (!Array.isArray(p.badges)) p.badges = ['reviewed'];
@@ -81,11 +83,10 @@ export async function bulkSaveRoute(req, res) {
 export async function saveRoute(req, res) {
   try {
     const body = req.body || {};
-    if (!body.affiliateUrl) {
-      return res.status(400).json({ error: 'Thiếu affiliateUrl (link khách bấm mua).' });
-    }
-    if (!body.title) {
-      return res.status(400).json({ error: 'Thiếu title (tên sản phẩm).' });
+    // Validate qua schema chung — single source of truth.
+    const v = validateProduct(body);
+    if (!v.ok) {
+      return res.status(400).json({ error: v.errors.join('; ') });
     }
     if (!Array.isArray(body.images)) body.images = [];
     if (!Array.isArray(body.videos)) body.videos = body.video ? [body.video] : [];

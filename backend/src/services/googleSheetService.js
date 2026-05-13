@@ -8,38 +8,14 @@ import Papa from 'papaparse';
 
 const TIMEOUT = 20000;
 
-// Các tên cột chấp nhận (case-insensitive, allow synonyms)
-// Alias tiếng Việt khớp với UI website + tiếng Anh để backward compat
+import { COL_ALIASES as SCHEMA_ALIASES } from '../shared/productSchema.js';
+
+// Aliases load từ shared schema — single source of truth.
+// Backward compat: thêm alias cũ 'oldPrice' → field 'originalPrice'.
 const COL_ALIASES = {
-  id: ['id', 'product_id', 'productid'],
-  title: ['title', 'name', 'tên', 'ten', 'tên sản phẩm', 'tên'],
-  sourceUrl: [
-    'sourceurl', 'source_url', 'source', 'link gốc', 'linkgoc',
-    'link gốc (shopee/tiktok)', 'link goc', 'link goc (shopee/tiktok)',
-  ],
-  affiliateUrl: [
-    'affiliateurl', 'affiliate_url', 'affiliate', 'link affiliate', 'buyurl', 'buy_url',
-    'link affiliate (nút mua)', 'link affiliate (nut mua)', 'link mua', 'link aff',
-  ],
-  category: ['category', 'cat', 'danh mục', 'danhmuc', 'danh muc'],
-  price: ['price', 'giá', 'gia', 'giá (vnd)', 'gia (vnd)'],
-  oldPrice: [
-    'oldprice', 'old_price', 'originalprice', 'original_price',
-    'giá gốc', 'giagoc', 'gia goc', 'giá gốc (gạch ngang)',
-  ],
-  description: ['description', 'desc', 'mô tả', 'mota', 'mô tả ngắn', 'mo ta', 'mo ta ngan'],
-  image: ['image', 'img', 'cover', 'ảnh chính', 'anhchinh', 'anh chinh', 'ảnh', 'anh'],
-  gallery: [
-    'gallery', 'images', 'gallery (ảnh phụ)', 'gallery (anh phu)', 'ảnh phụ', 'anh phu',
-  ],
-  video: ['video', 'video_url', 'videourl'],
-  rating: ['rating', 'star', 'sao'],
-  tags: ['tags', 'tag'],
-  isHot: ['ishot', 'is_hot', 'hot', 'hot deal'],
-  isBestSeller: [
-    'isbestseller', 'is_bestseller', 'bestseller', 'best_seller', 'best seller',
-  ],
-  status: ['status', 'trạng thái', 'trangthai', 'trang thai'],
+  ...SCHEMA_ALIASES,
+  // Alias cũ: cột "oldPrice" trong sheet cũ map về originalPrice (schema giờ dùng tên này)
+  oldPrice: SCHEMA_ALIASES.originalPrice,
 };
 
 /** Build map từ tên cột thực tế của Sheet → field chuẩn. */

@@ -365,9 +365,32 @@ Vercel serverless **không chạy được Puppeteer** ổn định. Khuyến ng
 2. **Root Directory**: `backend`
 3. **Build Command**: `npm install`
 4. **Start Command**: `npm start`
-5. Environment: `CORS_ORIGIN=https://your-project.vercel.app`
+5. **Environment Variables** (BẮT BUỘC cho production):
 
-**Option B — Railway / Fly.io / VPS riêng**: tương tự, miễn là Node 18+ và đủ RAM cho Chromium (~500MB).
+| Key | Value | Lý do |
+|---|---|---|
+| `NODE_ENV` | `production` | Kích hoạt JWT_SECRET fail-fast + Express prod mode |
+| `JWT_SECRET` | `<random ≥ 32 chars>` | Ký JWT token. **Backend sẽ exit(1) nếu chưa set trong production.** Tạo bằng `openssl rand -hex 32` |
+| `ADMIN_USERNAME` | `admin` | Login admin |
+| `ADMIN_PASSWORD` | `<strong password>` | Login admin |
+| `CORS_ORIGIN` | `https://lion-affiliate.vercel.app` | Restrict origin. **KHÔNG để `*` trong production** — sẽ cho phép mọi website gọi API |
+| `USE_PUPPETEER` | `false` | Render Free không đủ RAM cho Chromium |
+| `PUPPETEER_SKIP_DOWNLOAD` | `true` | Skip download Chromium binary lúc deploy |
+| `SUPABASE_URL` (optional) | `https://xxx.supabase.co` | Khi muốn lưu data Supabase thay vì JSON. Xem `SUPABASE_SETUP.md` |
+| `SUPABASE_SERVICE_ROLE_KEY` (optional) | `<service_role key>` | Đi kèm SUPABASE_URL |
+
+**⚠️ Lưu ý quan trọng:**
+- `JWT_SECRET`: nếu không set hoặc dùng default `'change-me-in-env'`, backend production sẽ crash khởi động (intentional, fail-fast). Cần secret ≥ 32 ký tự random.
+- `CORS_ORIGIN`: nếu để `*` (mặc định), mọi domain có thể gọi API → người ngoài có thể scrape data hoặc build site dùng API của bạn. Restrict cụ thể.
+- Nhiều domain: cách nhau dấu phẩy. VD: `https://lion-affiliate.vercel.app,https://lionaffiliate.com`
+
+**Rate limiting** đã built-in (auto active):
+- Public endpoints: 120 req/phút/IP
+- Auth endpoints: 20 req/phút/IP (chống brute force login)
+
+**Cache headers** đã built-in: `Cache-Control: public, max-age=60` cho GET public → giảm tải backend.
+
+**Option B — Railway / Fly.io / VPS riêng**: tương tự, miễn là Node 20+ và đủ RAM cho Chromium (~500MB nếu enable Puppeteer).
 
 Sau khi backend chạy, copy URL public của nó (vd `https://scraper.onrender.com`) và update biến `VITE_API_URL` trên Vercel → redeploy frontend.
 
