@@ -19,6 +19,9 @@ export const GridIcon = (p) => (
 export const ArrowRight = (p) => (
   <svg {...i(p.className)}><path d="M5 12h14M13 5l7 7-7 7"/></svg>
 );
+export const ArrowLeft = (p) => (
+  <svg {...i(p.className)}><path d="M19 12H5M11 5l-7 7 7 7"/></svg>
+);
 export const CloseIcon = (p) => (
   <svg {...i(p.className)}><path d="M6 6l12 12M18 6 6 18"/></svg>
 );

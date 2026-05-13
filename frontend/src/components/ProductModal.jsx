@@ -6,7 +6,7 @@ import PlatformBadge from './PlatformBadge';
 import Rating from './Rating';
 import { formatVND, formatCompact, formatPriceRange, resolveDiscount } from '../utils/format';
 import { getAffiliateUrl } from '../config/affiliate';
-import { CloseIcon, ArrowRight, CheckCircle } from './icons';
+import { CloseIcon, ArrowLeft, ArrowRight, CheckCircle } from './icons';
 import { trackClick } from '../services/analytics';
 
 /**
@@ -52,14 +52,28 @@ export default function ProductModal({ product, onClose }) {
             onClick={(e) => e.stopPropagation()}
             className="relative max-h-[92vh] w-full overflow-hidden rounded-t-3xl bg-white sm:max-h-[90vh] sm:max-w-3xl sm:rounded-3xl"
           >
-            {/* Close */}
-            <button
-              onClick={onClose}
-              aria-label="Đóng"
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-brand-ink-900 shadow ring-1 ring-brand-ink-200 hover:bg-white"
-            >
-              <CloseIcon className="h-5 w-5" />
-            </button>
+            {/* Toolbar — absolute trên sheet (sheet KHÔNG scroll, chỉ inner div
+                scroll → toolbar luôn ở top viewport). pointer-events-none ở
+                wrapper, pointer-events-auto ở từng button cho click pass-through
+                vùng giữa (vẫn thấy ảnh sản phẩm phía sau). */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between p-2.5 sm:p-3">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Quay lại"
+                className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-brand-ink-900 shadow-lg ring-1 ring-brand-ink-200 transition hover:bg-brand-orange-50 hover:text-brand-orange-600"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Đóng"
+                className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-brand-ink-900 shadow-lg ring-1 ring-brand-ink-200 transition hover:bg-brand-orange-50 hover:text-brand-orange-600"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </button>
+            </div>
 
             <div className="overflow-y-auto max-h-[92vh] sm:max-h-[90vh]">
               <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
@@ -82,7 +96,9 @@ export default function ProductModal({ product, onClose }) {
                         eager
                       />
                     )}
-                    <div className="absolute left-3 top-3">
+                    {/* PlatformBadge dời xuống top-16 để không bị toolbar phía
+                        trên (back + close button) che. */}
+                    <div className="absolute left-3 top-16">
                       <PlatformBadge platform={product.platform} />
                     </div>
                   </div>

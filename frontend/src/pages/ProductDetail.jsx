@@ -4,7 +4,7 @@ import Seo from '../components/Seo';
 import LazyImage from '../components/LazyImage';
 import PlatformBadge from '../components/PlatformBadge';
 import Rating from '../components/Rating';
-import { CheckCircle, ArrowRight } from '../components/icons';
+import { CheckCircle, ArrowRight, ArrowLeft } from '../components/icons';
 import { formatVND, formatCompact, formatPriceRange, resolveDiscount } from '../utils/format';
 import { getAffiliateUrl } from '../config/affiliate';
 import { getProductBySlug } from '../data/products';
@@ -73,13 +73,25 @@ export default function ProductDetail() {
         type="product"
       />
 
-      {/* Breadcrumb */}
-      <div className="container-page pt-6 text-xs text-brand-ink-500">
-        <Link to="/" className="hover:text-brand-orange-600">Trang chủ</Link>
-        <span className="mx-1">/</span>
-        <Link to="/products" className="hover:text-brand-orange-600">Sản phẩm</Link>
-        <span className="mx-1">/</span>
-        <span className="text-brand-ink-700">{product.title}</span>
+      {/* Back button rõ ràng + breadcrumb. Trên mobile, button bằng tay chạm
+          tốt hơn link text-xs nhỏ. Dùng navigate(-1) để giữ scroll state nếu
+          user từ list → fallback navigate('/') nếu history trống (deep link). */}
+      <div className="container-page flex items-center gap-3 pt-4 sm:pt-6">
+        <button
+          type="button"
+          onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
+          className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-brand-ink-700 shadow-soft ring-1 ring-brand-ink-200 transition hover:bg-brand-orange-50 hover:text-brand-orange-600 hover:ring-brand-orange-200 sm:text-sm"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Quay lại
+        </button>
+        <nav aria-label="Breadcrumb" className="hidden truncate text-xs text-brand-ink-500 sm:block">
+          <Link to="/" className="hover:text-brand-orange-600">Trang chủ</Link>
+          <span className="mx-1">/</span>
+          <Link to="/products" className="hover:text-brand-orange-600">Sản phẩm</Link>
+          <span className="mx-1">/</span>
+          <span className="text-brand-ink-700">{product.title}</span>
+        </nav>
       </div>
 
       <div className="container-page mt-4 grid gap-6 sm:mt-6 lg:grid-cols-2 lg:gap-10">
