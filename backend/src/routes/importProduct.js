@@ -63,6 +63,7 @@ export async function importProductRoute(req, res) {
         sold: scraped.sold ?? null,
         soldText: scraped.soldText || null,
         category: scraped.category || null,
+        brand: scraped.brand || null,
         image: scraped.images?.[0] || null,            // cover
         gallery: scraped.images?.slice(1) || [],       // additional
         images: scraped.images || [],                  // full array (compat)

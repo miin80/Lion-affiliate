@@ -70,6 +70,7 @@ export async function scrape(url) {
     sold: data.sold ?? null,
     soldText: data.soldText || null,
     category: data.category || null,
+    brand: data.brand || null,
     images: Array.isArray(data.images) ? data.images.filter(Boolean) : [],
     video: data.video || null,
   };

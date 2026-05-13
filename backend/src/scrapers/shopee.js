@@ -131,7 +131,7 @@ async function tryShopeeApi(url, variant = 'item') {
 
     return {
       title: item.name || '',
-      description: (item.description || '').slice(0, 800),
+      description: (item.description || '').slice(0, 4000),
       images,
       video: videoUrl,
       price,
@@ -153,105 +153,203 @@ async function tryShopeeApi(url, variant = 'item') {
   }
 }
 
+// Build URL ảnh thật từ Shopee image ID.
+const CDN = 'https://down-vn.img.susercontent.com/file/';
+function imageUrlFromId(id) {
+  if (!id || typeof id !== 'string') return null;
+  if (id.startsWith('http')) return id;
+  return CDN + id;
+}
+
 /**
- * Fallback: fetch HTML page với User-Agent giả Facebook crawler.
- * Shopee serve OG meta đầy đủ cho FB crawler để link share đẹp → bypass anti-bot.
- * Nếu UA Facebook không work, thử UA mobile Chrome (m.shopee.vn).
+ * Fetch HTML mobile Shopee (m.shopee.vn) → parse <script type="text/mfe-initial-data">
+ * → cachedMap chứa FULL product JSON (title, ảnh, rating, mô tả, brand, ...).
+ *
+ * Phát hiện: Shopee mobile site SSR data dạng JSON inline cho SEO + share.
+ * Là cách auto-grab data đáng tin nhất khi API trực tiếp bị 403.
+ *
+ * Note: Shopee deliberately strip `product_price.price` / `historical_sold` khỏi
+ * BFF response public — 2 field này admin phải nhập tay.
+ */
+async function tryShopeeMobileBff(url) {
+  console.log(`[shopee-mobile-bff] Fetch: ${url}`);
+  try {
+    const res = await axios.get(url, {
+      timeout: 20000,
+      headers: {
+        'User-Agent': UA_MOBILE,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+      },
+      maxRedirects: 5,
+      validateStatus: () => true,
+    });
+    if (res.status !== 200 || typeof res.data !== 'string') {
+      console.warn(`[shopee-mobile-bff] status=${res.status}`);
+      return null;
+    }
+    const html = res.data;
+    const scriptMatch = html.match(
+      /<script[^>]*type="text\/mfe-initial-data"[^>]*>([\s\S]*?)<\/script>/
+    );
+    if (!scriptMatch) {
+      console.warn('[shopee-mobile-bff] Không tìm thấy mfe-initial-data script');
+      return null;
+    }
+
+    let json;
+    try {
+      json = JSON.parse(scriptMatch[1]);
+    } catch (e) {
+      console.warn('[shopee-mobile-bff] JSON parse fail:', e.message);
+      return null;
+    }
+
+    const cachedMap = json?.initialState?.DOMAIN_PDP?.data?.PDP_BFF_DATA?.cachedMap;
+    if (!cachedMap) {
+      console.warn('[shopee-mobile-bff] cachedMap rỗng');
+      return null;
+    }
+    const firstKey = Object.keys(cachedMap)[0];
+    if (!firstKey) return null;
+    const inner = cachedMap[firstKey];
+    const item = inner.item || {};
+    const productImages = inner.product_images || {};
+    const productReview = inner.product_review || inner.item?.item_rating || {};
+    const productPrice = inner.product_price || {};
+
+    // Title
+    const title = (item.title || '').trim();
+
+    // Images: ưu tiên product_images.images (full gallery), fallback item.image
+    const imageIds = Array.isArray(productImages.images)
+      ? productImages.images
+      : item.image
+      ? [item.image]
+      : [];
+    const images = imageIds.map(imageUrlFromId).filter(Boolean);
+
+    // Video
+    const videoUrl =
+      productImages.video?.default_format?.url ||
+      productImages.video?.formats?.[0]?.url ||
+      null;
+
+    // Description — Shopee dạng:
+    //  - string thuần (Maybelline, ...)
+    //  - JSON string {"paragraph_list":[{"type":0,"text":"..."}, ...]} (Sachi, ...)
+    //  - object trực tiếp paragraph_list
+    // Parse paragraph_list → join text từng đoạn = newline (giống bố cục Shopee).
+    function stringifyDesc(raw) {
+      if (!raw) return '';
+      let val = raw;
+      // Nếu là string thử parse JSON paragraph_list
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        if (trimmed.startsWith('{') && trimmed.includes('paragraph_list')) {
+          try { val = JSON.parse(trimmed); } catch {}
+        } else {
+          return val;
+        }
+      }
+      // Nếu là object có paragraph_list → join text
+      if (val && typeof val === 'object') {
+        if (Array.isArray(val.paragraph_list)) {
+          return val.paragraph_list
+            .map((p) => (typeof p?.text === 'string' ? p.text : ''))
+            .filter(Boolean)
+            .join('\n');
+        }
+        if (Array.isArray(val)) {
+          return val.map((p) => (typeof p?.text === 'string' ? p.text : '')).filter(Boolean).join('\n');
+        }
+        if (typeof val.content === 'string') return val.content;
+        if (typeof val.text === 'string') return val.text;
+        try { return JSON.stringify(val); } catch { return ''; }
+      }
+      return String(val || '');
+    }
+    const description = stringifyDesc(item.rich_text_description || item.description).slice(0, 4000);
+
+    // Rating + count
+    const rs = productReview.rating_star || item.item_rating?.rating_star;
+    const rating = typeof rs === 'number' && rs > 0 ? Math.round(rs * 10) / 10 : null;
+    const rcArr = productReview.rating_count || item.item_rating?.rating_count || [];
+    const ratingCount = Array.isArray(rcArr) && rcArr.length ? rcArr[0] || 0 : 0;
+
+    // Sold — usually null (Shopee strip)
+    const sold = productReview.historical_sold || productReview.global_sold || null;
+
+    // Price — usually null (Shopee strip) — vẫn check phòng khi có
+    const priceFrom = (raw) => (typeof raw === 'number' && raw > 0 ? raw / 1e5 : null);
+    const price = priceFrom(productPrice.price);
+    const originalPrice = priceFrom(productPrice.price_before_discount);
+
+    // Brand → label
+    const brand = item.brand || null;
+
+    console.log(
+      `[shopee-mobile-bff] ✅ title="${title.slice(0, 40)}" imgs=${images.length} rating=${rating} brand=${brand}`
+    );
+
+    return {
+      title,
+      description,
+      images,
+      video: videoUrl,
+      price,
+      originalPrice,
+      rating,
+      ratingCount,
+      sold,
+      soldText: null,
+      brand,
+      category: null,
+    };
+  } catch (err) {
+    console.warn('[shopee-mobile-bff] failed:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Open Graph fallback — chỉ dùng khi mobile BFF không work.
+ * UA Facebook crawler → Shopee thường serve OG meta đầy đủ.
  */
 async function tryShopeeHtml(url) {
-  // Try 2 UAs theo thứ tự: Facebook bot → mobile Chrome
-  const attempts = [
-    { ua: UA_FACEBOOK, label: 'fb-bot' },
-    { ua: UA_MOBILE, label: 'mobile-chrome' },
-  ];
-  let html = null;
-  let usedLabel = null;
-  for (const a of attempts) {
-    try {
-      console.log(`[shopee-html] Fetch as ${a.label}: ${url}`);
-      const res = await axios.get(url, {
-        timeout: 15000,
-        headers: {
-          'User-Agent': a.ua,
-          Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
-        },
-        maxRedirects: 5,
-        validateStatus: () => true,
-      });
-      if (res.status === 200 && typeof res.data === 'string' && res.data.length > 5000) {
-        html = res.data;
-        usedLabel = a.label;
-        // Sớm chấp nhận nếu HTML có og:title hoặc title — đỡ thử tiếp UA khác
-        if (html.includes('og:title') || /<title>[^<]+<\/title>/i.test(html)) break;
-      } else {
-        console.warn(`[shopee-html] ${a.label} status=${res.status} length=${res.data?.length}`);
-      }
-    } catch (err) {
-      console.warn(`[shopee-html] ${a.label} failed:`, err.message);
-    }
-  }
-  if (!html) return null;
-  console.log(`[shopee-html] Using HTML from ${usedLabel} (${html.length} chars)`);
-
+  console.log(`[shopee-html] Fetch as fb-bot: ${url}`);
   try {
+    const res = await axios.get(url, {
+      timeout: 15000,
+      headers: {
+        'User-Agent': UA_FACEBOOK,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+      },
+      maxRedirects: 5,
+      validateStatus: () => true,
+    });
+    if (res.status !== 200 || typeof res.data !== 'string') return null;
+    const html = res.data;
     const $ = cheerio.load(html);
-
-    // 1. Open Graph
     const og = {
       title: $('meta[property="og:title"]').attr('content') || '',
       description: $('meta[property="og:description"]').attr('content') || '',
       image: $('meta[property="og:image"]').attr('content') || '',
     };
-
-    // 2. <title> tag fallback (Shopee thường dạng "Title | Shopee Việt Nam")
     const docTitle = ($('title').text() || '').split('|')[0].trim();
-
-    // 3. JSON-LD structured data
-    const ldImages = [];
-    let ldPrice = null;
-    let ldRating = null;
-    $('script[type="application/ld+json"]').each((_, el) => {
-      try {
-        const parsed = JSON.parse($(el).html());
-        const nodes = Array.isArray(parsed) ? parsed : [parsed];
-        nodes.forEach((n) => {
-          if (!n) return;
-          if (n['@type'] === 'Product' || n.image) {
-            if (Array.isArray(n.image)) ldImages.push(...n.image);
-            else if (typeof n.image === 'string') ldImages.push(n.image);
-          }
-          if (n.offers?.price) ldPrice = Number(n.offers.price) || null;
-          if (n.aggregateRating?.ratingValue) {
-            ldRating = Math.round(Number(n.aggregateRating.ratingValue) * 10) / 10;
-          }
-        });
-      } catch {}
-    });
-
-    const images = [og.image, ...ldImages].filter(Boolean);
-    // Cleanup title: bỏ suffix "| Shopee Việt Nam" / "- Shopee" / "Mua ngay tại Shopee"
     const cleanTitle = (t) =>
-      (t || '')
-        .replace(/\s*[|·-]\s*Shopee.*$/i, '')
-        .replace(/\s*Mua ngay tại Shopee.*$/i, '')
-        .trim();
+      (t || '').replace(/\s*[|·-]\s*Shopee.*$/i, '').replace(/\s*Mua ngay tại Shopee.*$/i, '').trim();
     const title = cleanTitle(og.title) || cleanTitle(docTitle) || '';
-
-    return {
-      title,
-      description: og.description || '',
-      images,
-      price: ldPrice,
-      rating: ldRating,
-    };
+    const images = og.image ? [og.image] : [];
+    return { title, description: og.description, images };
   } catch (err) {
-    console.warn('[shopee-html] Parse failed:', err.message);
+    console.warn('[shopee-html] failed:', err.message);
     return null;
   }
 }
 
-// Merge 2 partial results — ưu tiên field nào có giá trị thật (truthy).
+// Merge 2 partial results — ưu tiên field nào có giá trị thật từ primary, fallback bù field thiếu.
 function mergeResults(primary, fallback) {
   if (!primary && !fallback) return null;
   if (!primary) return fallback;
@@ -263,16 +361,17 @@ function mergeResults(primary, fallback) {
     video: primary.video || fallback.video || null,
     price: primary.price ?? fallback.price ?? null,
     originalPrice: primary.originalPrice ?? fallback.originalPrice ?? null,
-    priceMin: primary.priceMin ?? null,
-    priceMax: primary.priceMax ?? null,
-    oldPriceMin: primary.oldPriceMin ?? null,
-    oldPriceMax: primary.oldPriceMax ?? null,
-    discountPercent: primary.discountPercent ?? null,
+    priceMin: primary.priceMin ?? fallback.priceMin ?? null,
+    priceMax: primary.priceMax ?? fallback.priceMax ?? null,
+    oldPriceMin: primary.oldPriceMin ?? fallback.oldPriceMin ?? null,
+    oldPriceMax: primary.oldPriceMax ?? fallback.oldPriceMax ?? null,
+    discountPercent: primary.discountPercent ?? fallback.discountPercent ?? null,
     rating: primary.rating ?? fallback.rating ?? null,
-    ratingCount: primary.ratingCount ?? null,
-    sold: primary.sold ?? null,
-    soldText: primary.soldText || null,
-    category: primary.category || null,
+    ratingCount: primary.ratingCount ?? fallback.ratingCount ?? null,
+    sold: primary.sold ?? fallback.sold ?? null,
+    soldText: primary.soldText || fallback.soldText || null,
+    category: primary.category || fallback.category || null,
+    brand: primary.brand || fallback.brand || null,
   };
 }
 
@@ -287,49 +386,53 @@ function isIncomplete(data) {
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 export async function scrapeShopee(url) {
-  // 1. Thử endpoint /api/v4/item/get (cũ, hay bị 403 nhất)
+  // 1. Thử endpoint API /api/v4/item/get (cũ, gần đây hay 403)
   let apiData = await tryShopeeApi(url, 'item');
 
-  // 2. Nếu fail → thử endpoint /api/v4/pdp/get_pc (mới, đôi khi vẫn mở)
+  // 2. Nếu fail → thử endpoint /api/v4/pdp/get_pc (mới)
   if (isIncomplete(apiData)) {
     console.log('[shopee] item endpoint incomplete, trying PDP endpoint...');
     apiData = await tryShopeeApi(url, 'pdp');
   }
 
-  // 3. Vẫn fail → đợi 1.5s rồi retry item endpoint (chống chập chờn)
+  // 3. Vẫn fail → MOBILE BFF (parse script JSON từ m.shopee.vn HTML)
+  //    Đây là cách reliable nhất khi API bị chặn — Shopee SSR full data inline.
+  let bffData = null;
   if (isIncomplete(apiData)) {
-    console.log('[shopee] PDP also failed, waiting 1.5s then retrying item...');
-    await wait(1500);
-    apiData = await tryShopeeApi(url, 'item');
+    console.log('[shopee] API blocked, trying mobile BFF (inline JSON state)...');
+    bffData = await tryShopeeMobileBff(url);
   }
 
-  // 4. Vẫn fail → fallback HTML với UA Facebook bot
+  // 4. Fallback cuối: HTML Facebook bot (chỉ OG meta — không có gallery)
   let htmlData = null;
-  if (isIncomplete(apiData)) {
-    console.log('[shopee] All API attempts failed, trying HTML with FB bot UA...');
+  if (isIncomplete(apiData) && isIncomplete(bffData)) {
+    console.log('[shopee] Mobile BFF cũng fail, fallback HTML FB bot...');
     htmlData = await tryShopeeHtml(url);
   }
 
-  // 3. Merge — API là source chính, HTML chỉ bù fields thiếu.
-  let merged = mergeResults(apiData, htmlData);
+  // Ưu tiên chain merge:
+  //  apiData (có giá thật) > bffData (có gallery+rating+mô tả) > htmlData (chỉ OG basic)
+  // Mỗi nguồn fill những field nó có; field rỗng sẽ được nguồn tiếp theo bù vào.
+  let merged = mergeResults(apiData, bffData);
+  merged = mergeResults(merged, htmlData);
 
-  // 4. Slug URL fallback cho title (nếu cả 2 trên vẫn không có)
+  // Slug URL fallback cho title
   if (merged && !merged.title) {
     merged.title = titleFromUrl(url) || '';
   }
-  if (!merged && (apiData || htmlData)) {
-    merged = apiData || htmlData;
+  if (!merged && (apiData || bffData || htmlData)) {
+    merged = apiData || bffData || htmlData;
     if (!merged.title) merged.title = titleFromUrl(url) || '';
   }
 
   if (merged?.title || merged?.images?.length) {
     console.log(
-      `[shopee] ✅ Final: title="${merged.title?.slice(0, 50)}" imgs=${merged.images?.length || 0} price=${merged.price ?? '-'} range=${merged.priceMin ?? '-'}-${merged.priceMax ?? '-'} disc=${merged.discountPercent ?? '-'}`
+      `[shopee] ✅ Final: title="${merged.title?.slice(0, 50)}" imgs=${merged.images?.length || 0} price=${merged.price ?? '-'} range=${merged.priceMin ?? '-'}-${merged.priceMax ?? '-'} disc=${merged.discountPercent ?? '-'} rating=${merged.rating ?? '-'} desc=${merged.description?.length || 0}ch`
     );
     return merged;
   }
 
-  // 5. Puppeteer (chỉ khi enabled)
+  // Puppeteer fallback (chỉ khi enabled)
   if (USE_PUPPETEER) {
     const { scrapeWithPuppeteer } = await import('./puppeteer-meta.js');
     return scrapeWithPuppeteer(url, { waitMs: 4000 });
