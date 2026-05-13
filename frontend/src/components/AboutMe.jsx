@@ -51,8 +51,8 @@ export default function AboutMe() {
       >
         {/* Header — title to hơn, font-weight 700 (bold), spacing emoji↔text rõ ràng */}
         <div className="text-center">
-          <h2 className="flex items-center justify-center gap-2 text-lg font-bold tracking-tight sm:text-2xl">
-            <span aria-hidden>{titleEmoji}</span>
+          <h2 className="flex items-center justify-center gap-1.5 text-lg font-bold tracking-tight sm:text-2xl">
+            <span aria-hidden className="text-[1.1em] leading-none">{titleEmoji}</span>
             <span>{titleText}</span>
           </h2>
           <p className="mx-auto mt-3 max-w-[700px] text-sm leading-relaxed text-brand-ink-600 sm:mt-4 sm:text-base">

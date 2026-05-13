@@ -35,11 +35,11 @@ export default function Footer() {
     : DEFAULT_FOOTER_STATS;
   const visibleStats = footerStats.filter((s) => s && String(s.value || '').trim());
   const year = new Date().getFullYear();
-  // bg-brand-ink-50 (#fafafa) + border-brand-ink-200 (#e5e5e5 ~ #eee) →
-  // tách footer khỏi content rõ ràng hơn so với border-100 cũ (#f5f5f5
-  // gần như cùng màu bg).
+  // bg #fcfcfc + border-top #f1f1f1 — tách layer footer cực nhẹ, không
+  // chìm vào body trắng (#fff) nhưng cũng không đậm tới mức làm footer
+  // nặng nề. Spec user request.
   return (
-    <footer className="mt-4 border-t border-brand-ink-200 bg-brand-ink-50 pb-24 sm:mt-10 sm:pb-10">
+    <footer className="mt-4 border-t border-[#f1f1f1] bg-[#fcfcfc] pb-24 sm:mt-10 sm:pb-10">
       <div className="container-page py-5 sm:py-8">
         {/* Social proof — chỉ hiện khi admin set ít nhất 1 stat */}
         {visibleStats.length > 0 && (
