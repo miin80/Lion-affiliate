@@ -123,8 +123,15 @@ app.use('/api/categories/active-with-products', publicLimiter);
 // 60s cache: frontend load home/products lặp lại không spam backend → giảm tải +
 // cải thiện latency. Mutation (POST/PUT/PATCH/DELETE) tự động bỏ qua.
 // CDN-friendly: Vercel edge có thể cache thêm bằng s-maxage.
+//
+// ⚠️ Admin sub-path (vd /api/products/admin) — CẤM cache. Admin vừa xoá/edit
+// xong, nếu cache 60s thì Dashboard/manager hiển thị stale data → user tưởng
+// thao tác fail. Set no-store cho admin paths.
 function publicCacheControl(req, res, next) {
-  if (req.method === 'GET') {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/admin')) {
+    res.set('Cache-Control', 'no-store');
+  } else {
     res.set('Cache-Control', 'public, max-age=60, s-maxage=60, stale-while-revalidate=30');
   }
   next();
