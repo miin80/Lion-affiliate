@@ -186,11 +186,11 @@ export default function CollectionsManager() {
       <div className="grid gap-3 sm:grid-cols-2">
         <DragSortable items={items} onReorder={handleReorder} layout="grid"
           renderItem={(c, dragProps) => (
-            <div className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${c.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
+            <div className={`flex min-w-0 gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${c.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
               <DragHandle dragProps={dragProps} className="self-start" />
               {c.cover && <img src={c.cover} alt="" loading="lazy" className="h-20 w-20 shrink-0 rounded-lg object-cover" />}
-              <div className="flex flex-1 flex-col gap-1 text-sm">
-                <div className="font-semibold">{c.emoji} {c.title}</div>
+              <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
+                <div className="break-words font-semibold" title={c.title}>{c.emoji} {c.title}</div>
                 <div className="text-[11px] text-brand-ink-500">{c.productSlugs?.length || 0} sản phẩm · #{c.order ?? 0} · {c.status}</div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   <button onClick={() => setEditing({ ...c })} className="rounded-full bg-brand-ink-100 px-2.5 py-1 text-[11px] font-semibold">✏️ Sửa</button>

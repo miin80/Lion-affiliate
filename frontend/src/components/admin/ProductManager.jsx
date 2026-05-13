@@ -408,7 +408,9 @@ function ProductRow({ product, categoryLabel, busy, selected, onSelectToggle, on
   void product.source;
   return (
     <article
-      className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 transition ${
+      // min-w-0: grid-child mặc định min-width=auto → content dài đẩy track grid →
+      // vỡ layout. Cho phép article co theo grid track.
+      className={`flex min-w-0 gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 transition ${
         selected
           ? 'ring-brand-orange-400 ring-2'
           : isHidden
@@ -441,7 +443,9 @@ function ProductRow({ product, categoryLabel, busy, selected, onSelectToggle, on
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 text-sm">
+      {/* min-w-0: flex-child mặc định min-width=auto → child có truncate/line-clamp
+          không thể co lại được. Bắt buộc để URL truncate + title line-clamp hoạt động. */}
+      <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
         {/* Badges row */}
         <div className="flex flex-wrap items-center gap-1.5">
           <StatusPill status={product.status || 'active'} />
@@ -449,8 +453,13 @@ function ProductRow({ product, categoryLabel, busy, selected, onSelectToggle, on
           <PlatformBadge platform={product.platform} className="text-[10px]" />
         </div>
 
-        {/* Title + meta */}
-        <h3 className="line-clamp-2 font-semibold leading-snug">{product.title}</h3>
+        {/* Title — line-clamp-2 + break-words để string dài (URL-like) cũng wrap */}
+        <h3
+          className="line-clamp-2 break-words font-semibold leading-snug"
+          title={product.title}
+        >
+          {product.title}
+        </h3>
         <div className="flex flex-wrap items-center gap-2 text-[10px] text-brand-ink-500">
           <span>{categoryLabel}</span>
           {product.createdAt && (
@@ -487,13 +496,14 @@ function ProductRow({ product, categoryLabel, busy, selected, onSelectToggle, on
           )}
         </div>
 
-        {/* Affiliate URL */}
+        {/* Affiliate URL — block + truncate để ellipsis hoạt động (truncate trên
+            <a> inline mặc định không show "..."). Hover hiển thị title đầy đủ. */}
         {product.affiliateUrl && (
           <a
             href={product.affiliateUrl}
             target="_blank"
             rel="noopener nofollow noreferrer"
-            className="truncate text-[10px] text-brand-blue-600 hover:underline"
+            className="block max-w-full truncate text-[10px] text-brand-blue-600 hover:underline"
             title={product.affiliateUrl}
           >
             🔗 {product.affiliateUrl}

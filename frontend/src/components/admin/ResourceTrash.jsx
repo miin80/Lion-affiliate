@@ -246,7 +246,7 @@ export default function ResourceTrash({
           {list.map((item) => (
             <article
               key={item.id}
-              className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 transition ${
+              className={`flex min-w-0 gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 transition ${
                 selected.has(item.id) ? 'ring-2 ring-brand-orange-400' : 'ring-brand-ink-200 opacity-75'
               }`}
             >
@@ -257,9 +257,9 @@ export default function ResourceTrash({
                 className="mt-1 h-4 w-4 shrink-0 accent-brand-orange-500"
               />
               {renderThumb && <div className="shrink-0">{renderThumb(item)}</div>}
-              <div className="flex flex-1 flex-col gap-1 text-sm">
+              <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
                 <span className="badge w-fit bg-red-100 text-red-700">🗑 TRASH</span>
-                <h3 className="line-clamp-2 font-semibold leading-snug">{getName(item)}</h3>
+                <h3 className="line-clamp-2 break-words font-semibold leading-snug" title={getName(item)}>{getName(item)}</h3>
                 <div className="text-[10px] text-brand-ink-500">
                   {item.trashedAt ? `Vào thùng rác: ${formatDate(item.trashedAt)}` : `Cập nhật: ${formatDate(item.updatedAt)}`}
                 </div>

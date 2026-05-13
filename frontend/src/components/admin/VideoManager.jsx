@@ -227,14 +227,14 @@ export default function VideoManager() {
           <div className="grid gap-3 sm:grid-cols-2">
             <DragSortable items={items} onReorder={handleReorder} layout="grid"
               renderItem={(v, dragProps) => (
-                <article className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${v.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
+                <article className={`flex min-w-0 gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${v.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
                   <DragHandle dragProps={dragProps} className="self-start" />
                   <img src={v.thumb} alt="" loading="lazy" className="h-28 w-20 shrink-0 rounded-lg object-cover" />
-                  <div className="flex flex-1 flex-col gap-1 text-sm">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
                     <span className={`badge w-fit ${v.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
                       ● {v.status === 'active' ? 'Đang hiển thị' : 'Đã ẩn'} · #{v.order ?? 0}
                     </span>
-                    <div className="line-clamp-2 font-semibold">{v.title}</div>
+                    <div className="line-clamp-2 break-words font-semibold" title={v.title}>{v.title}</div>
                     <div className="text-[11px] text-brand-ink-500">{v.views} · {v.duration}</div>
                     <div className="mt-1 flex flex-wrap gap-1">
                       <button onClick={() => startEdit(v)} className="rounded-full bg-brand-ink-100 px-2.5 py-1 text-[11px] font-semibold hover:bg-brand-ink-200">✏️ Sửa</button>

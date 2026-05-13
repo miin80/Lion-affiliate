@@ -143,7 +143,7 @@ export default function TrashManager() {
           {list.map((p) => (
             <article
               key={p.id}
-              className="flex gap-3 rounded-2xl bg-white p-3 opacity-75 shadow-card ring-1 ring-brand-ink-200"
+              className="flex min-w-0 gap-3 rounded-2xl bg-white p-3 opacity-75 shadow-card ring-1 ring-brand-ink-200"
             >
               <img
                 src={p.images?.[0] || 'https://placehold.co/200x200/f1f5f9/64748b?text=?'}
@@ -154,9 +154,9 @@ export default function TrashManager() {
                   e.currentTarget.src = 'https://placehold.co/200x200/fee2e2/991b1b?text=No+image';
                 }}
               />
-              <div className="flex flex-1 flex-col gap-1 text-sm">
+              <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
                 <span className="badge w-fit bg-red-100 text-red-700">🗑 TRASH</span>
-                <h3 className="line-clamp-2 font-semibold leading-snug">{p.title}</h3>
+                <h3 className="line-clamp-2 break-words font-semibold leading-snug" title={p.title}>{p.title}</h3>
                 <div className="text-[10px] text-brand-ink-500">
                   {p.trashedAt
                     ? `Vào thùng rác: ${formatDate(p.trashedAt)}`

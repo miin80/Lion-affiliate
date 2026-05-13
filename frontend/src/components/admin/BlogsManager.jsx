@@ -178,11 +178,11 @@ export default function BlogsManager() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         {items.map((b) => (
-          <div key={b.id} className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${b.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
+          <div key={b.id} className={`flex min-w-0 gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${b.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
             {b.cover && <img src={b.cover} alt="" loading="lazy" className="h-20 w-32 shrink-0 rounded-lg object-cover" />}
-            <div className="flex flex-1 flex-col gap-1 text-sm">
+            <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
               <span className="badge w-fit bg-brand-orange-100 text-brand-orange-700">{b.tag}</span>
-              <div className="line-clamp-2 font-semibold">{b.title}</div>
+              <div className="line-clamp-2 break-words font-semibold" title={b.title}>{b.title}</div>
               <div className="text-[10px] text-brand-ink-500">
                 {b.author} · {b.publishedAt?.slice(0, 10)} · {b.status}
               </div>
