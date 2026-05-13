@@ -11,6 +11,7 @@ import ProductModal from '../components/ProductModal';
 import { filterAndSort } from '../data/products';
 import { useProducts } from '../hooks/useProducts';
 import { useSiteSettings } from '../hooks/useSiteSettings';
+import { ProductGridSkeleton } from '../components/Skeletons';
 
 export default function Home() {
   const [category, setCategory] = useState('all');
@@ -61,17 +62,21 @@ export default function Home() {
                 {loading ? 'Đang tải...' : `${filtered.length} sản phẩm${search && ` cho "${search}"`}`}
               </span>
             </div>
-            <ProductGrid
-              products={filtered}
-              onOpen={setActive}
-              emptyIcon={products.length === 0 ? '🌱' : '🔍'}
-              emptyText={
-                products.length === 0 && !loading
-                  ? 'Chưa có sản phẩm nào. Vui lòng thêm sản phẩm trong trang quản trị (Import hoặc Google Sheet).'
-                  : 'Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé.'
-              }
-              showAdminCta={products.length === 0}
-            />
+            {loading && products.length === 0 ? (
+              <ProductGridSkeleton count={8} />
+            ) : (
+              <ProductGrid
+                products={filtered}
+                onOpen={setActive}
+                emptyIcon={products.length === 0 ? '🌱' : '🔍'}
+                emptyText={
+                  products.length === 0
+                    ? 'Chưa có sản phẩm nào. Vui lòng thêm sản phẩm trong trang quản trị (Import hoặc Google Sheet).'
+                    : 'Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé.'
+                }
+                showAdminCta={products.length === 0}
+              />
+            )}
           </section>
         </>
       )}

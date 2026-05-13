@@ -5,6 +5,7 @@ import { saveProductApi } from '../../services/api';
 import { CATEGORIES } from '../../data/categories';
 import MediaListEditor from './MediaListEditor';
 import TagsInput from './TagsInput';
+import ProductPreview from './previews/ProductPreview';
 
 const BADGE_OPTIONS = [
   { key: 'hot', label: '🔥 Hot' },
@@ -283,6 +284,9 @@ export default function EditProductModal({ product, onClose, onSaved }) {
                   ⚠️ {error}
                 </div>
               )}
+
+              {/* Realtime preview */}
+              <ProductPreview product={draft} />
             </div>
 
             {/* Footer */}

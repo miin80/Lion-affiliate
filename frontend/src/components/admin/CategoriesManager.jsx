@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { categoriesApi } from '../../services/resources';
+import DragSortable, { DragHandle } from './DragSortable';
+import { ManagerCardListSkeleton } from '../Skeletons';
 
 const EMPTY = { id: null, slug: '', name: '', icon: '✨', order: 99, status: 'active' };
 
@@ -49,7 +51,18 @@ export default function CategoriesManager() {
     catch (err) { flash('error', err.message); }
   };
 
-  if (loading) return <div className="rounded-3xl bg-brand-ink-50 p-10 text-center text-sm">Đang tải...</div>;
+  const handleReorder = async (newOrder) => {
+    setItems(newOrder);
+    try {
+      await categoriesApi.reorder(newOrder.map((c, i) => ({ id: c.id, order: i })));
+      flash('success', '✓ Đã sắp xếp lại danh mục');
+    } catch (err) {
+      flash('error', err.message);
+      load();
+    }
+  };
+
+  if (loading) return <ManagerCardListSkeleton count={6} columns={2} />;
 
   return (
     <div className="space-y-4">
@@ -99,9 +112,16 @@ export default function CategoriesManager() {
         </div>
       )}
 
+      {items.length > 0 && (
+        <div className="rounded-2xl bg-blue-50 px-3 py-2 text-[11px] text-blue-700 ring-1 ring-blue-200">
+          💡 Kéo icon <span className="rounded bg-white px-1.5 py-0.5 font-bold">⋮⋮</span> để sắp xếp lại thứ tự danh mục.
+        </div>
+      )}
       <div className="grid gap-2 sm:grid-cols-2">
-        {items.map((c) => (
-          <div key={c.id} className={`flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${c.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
+        <DragSortable items={items} onReorder={handleReorder} layout="grid"
+          renderItem={(c, dragProps) => (
+          <div className={`flex items-center gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${c.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
+            <DragHandle dragProps={dragProps} />
             <span className="text-2xl">{c.icon}</span>
             <div className="flex-1 text-sm">
               <div className="font-semibold">{c.name}</div>
@@ -113,7 +133,8 @@ export default function CategoriesManager() {
             </button>
             <button onClick={() => remove(c)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700">🗑</button>
           </div>
-        ))}
+          )}
+        />
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import {
 } from '../../services/api';
 import { formatVND, formatDate } from '../../utils/format';
 import EditProductModal from './EditProductModal';
+import { ManagerCardListSkeleton } from '../Skeletons';
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'Tất cả (không tính trash)' },
@@ -301,9 +302,7 @@ export default function ProductManager() {
 
       {/* List */}
       {loading ? (
-        <div className="rounded-3xl bg-brand-ink-50 p-10 text-center text-sm text-brand-ink-500">
-          Đang tải danh sách...
-        </div>
+        <ManagerCardListSkeleton count={6} columns={2} />
       ) : filtered.length === 0 ? (
         <div className="rounded-3xl bg-brand-ink-50 p-10 text-center text-sm text-brand-ink-500">
           {list.length === 0

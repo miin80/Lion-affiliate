@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { blogsApi } from '../../services/resources';
 import { fetchAdminProducts } from '../../services/api';
+import BlogPreview from './previews/BlogPreview';
+import { ManagerCardListSkeleton } from '../Skeletons';
 
 const EMPTY = {
   id: null, slug: '', title: '', excerpt: '', cover: '', author: 'Admin',
@@ -56,7 +58,7 @@ export default function BlogsManager() {
     } catch (err) { flash('error', err.message); }
   };
 
-  if (loading) return <div className="rounded-3xl bg-brand-ink-50 p-10 text-center text-sm">Đang tải...</div>;
+  if (loading) return <ManagerCardListSkeleton count={4} columns={2} />;
 
   return (
     <div className="space-y-4">
@@ -141,6 +143,11 @@ export default function BlogsManager() {
               })}
             </div>
           </div>
+          {/* Realtime preview */}
+          <div className="mt-4">
+            <BlogPreview blog={editing} />
+          </div>
+
           <div className="mt-4 flex gap-2">
             <button onClick={save} className="btn-primary text-sm">💾 Lưu bài</button>
             <button onClick={() => setEditing(null)} className="btn-ghost text-sm">Huỷ</button>

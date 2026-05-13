@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { collectionsApi } from '../../services/resources';
 import { fetchAdminProducts } from '../../services/api';
+import CollectionPreview from './previews/CollectionPreview';
+import DragSortable, { DragHandle } from './DragSortable';
+import { ManagerCardListSkeleton } from '../Skeletons';
 
 const EMPTY = {
   id: null, slug: '', title: '', emoji: '✨', cover: '', desc: '',
@@ -55,7 +58,18 @@ export default function CollectionsManager() {
     } catch (err) { flash('error', err.message); }
   };
 
-  if (loading) return <div className="rounded-3xl bg-brand-ink-50 p-10 text-center text-sm">Đang tải...</div>;
+  const handleReorder = async (newOrder) => {
+    setItems(newOrder);
+    try {
+      await collectionsApi.reorder(newOrder.map((c, i) => ({ id: c.id, order: i })));
+      flash('success', '✓ Đã sắp xếp lại bộ sưu tập');
+    } catch (err) {
+      flash('error', `Lỗi: ${err.message}`);
+      load();
+    }
+  };
+
+  if (loading) return <ManagerCardListSkeleton count={4} columns={2} />;
 
   return (
     <div className="space-y-4">
@@ -131,6 +145,11 @@ export default function CollectionsManager() {
               })}
             </div>
           </div>
+          {/* Realtime preview */}
+          <div className="mt-4">
+            <CollectionPreview collection={editing} />
+          </div>
+
           <div className="mt-4 flex gap-2">
             <button onClick={save} className="btn-primary text-sm">💾 Lưu</button>
             <button onClick={() => setEditing(null)} className="btn-ghost text-sm">Huỷ</button>
@@ -138,23 +157,31 @@ export default function CollectionsManager() {
         </div>
       )}
 
+      {items.length > 0 && (
+        <div className="rounded-2xl bg-blue-50 px-3 py-2 text-[11px] text-blue-700 ring-1 ring-blue-200">
+          💡 Kéo icon <span className="rounded bg-white px-1.5 py-0.5 font-bold">⋮⋮</span> để sắp xếp lại thứ tự bộ sưu tập.
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
-        {items.map((c) => (
-          <div key={c.id} className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${c.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
-            {c.cover && <img src={c.cover} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />}
-            <div className="flex flex-1 flex-col gap-1 text-sm">
-              <div className="font-semibold">{c.emoji} {c.title}</div>
-              <div className="text-[11px] text-brand-ink-500">{c.productSlugs?.length || 0} sản phẩm · #{c.order ?? 0} · {c.status}</div>
-              <div className="mt-1 flex flex-wrap gap-1">
-                <button onClick={() => setEditing({ ...c })} className="rounded-full bg-brand-ink-100 px-2.5 py-1 text-[11px] font-semibold">✏️ Sửa</button>
-                <button onClick={() => toggleStatus(c)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${c.status === 'hidden' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
-                  {c.status === 'hidden' ? '👁 Hiện' : '🙈 Ẩn'}
-                </button>
-                <button onClick={() => moveToTrash(c)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700" title="Vào thùng rác">🗑</button>
+        <DragSortable items={items} onReorder={handleReorder} layout="grid"
+          renderItem={(c, dragProps) => (
+            <div className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${c.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
+              <DragHandle dragProps={dragProps} className="self-start" />
+              {c.cover && <img src={c.cover} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />}
+              <div className="flex flex-1 flex-col gap-1 text-sm">
+                <div className="font-semibold">{c.emoji} {c.title}</div>
+                <div className="text-[11px] text-brand-ink-500">{c.productSlugs?.length || 0} sản phẩm · #{c.order ?? 0} · {c.status}</div>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <button onClick={() => setEditing({ ...c })} className="rounded-full bg-brand-ink-100 px-2.5 py-1 text-[11px] font-semibold">✏️ Sửa</button>
+                  <button onClick={() => toggleStatus(c)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${c.status === 'hidden' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
+                    {c.status === 'hidden' ? '👁 Hiện' : '🙈 Ẩn'}
+                  </button>
+                  <button onClick={() => moveToTrash(c)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700" title="Vào thùng rác">🗑</button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )}
+        />
       </div>
     </div>
   );

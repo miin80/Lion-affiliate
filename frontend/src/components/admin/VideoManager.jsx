@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { videosApi } from '../../services/resources';
 import { fetchAdminProducts } from '../../services/api';
+import VideoPreview from './previews/VideoPreview';
+import DragSortable, { DragHandle } from './DragSortable';
+import { ManagerCardListSkeleton } from '../Skeletons';
 
 const EMPTY = {
   id: null,
@@ -87,8 +90,19 @@ export default function VideoManager() {
     }
   };
 
+  const handleReorder = async (newOrder) => {
+    setItems(newOrder); // optimistic
+    try {
+      await videosApi.reorder(newOrder.map((v, i) => ({ id: v.id, order: i })));
+      flash('success', '✓ Đã sắp xếp lại video');
+    } catch (err) {
+      flash('error', `Lỗi: ${err.message}`);
+      load(); // rollback
+    }
+  };
+
   if (loading) {
-    return <div className="rounded-3xl bg-brand-ink-50 p-10 text-center text-sm text-brand-ink-500">Đang tải...</div>;
+    return <ManagerCardListSkeleton count={4} columns={2} />;
   }
 
   return (
@@ -166,27 +180,10 @@ export default function VideoManager() {
             </Field>
           </div>
 
-          {/* Preview giống VideoReels card */}
-          {editing.thumb && (
-            <div className="mt-4">
-              <div className="text-xs font-bold uppercase tracking-wide text-brand-ink-500">
-                Xem trước
-              </div>
-              <div className="mt-2 w-44 overflow-hidden rounded-2xl bg-black shadow-card">
-                <div className="relative">
-                  <img src={editing.thumb} alt="" className="aspect-[9/16] w-full object-cover opacity-90" />
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                  {editing.views && (
-                    <div className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white">▶ {editing.views}</div>
-                  )}
-                  {editing.duration && (
-                    <div className="absolute right-2 top-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold">{editing.duration}</div>
-                  )}
-                  <p className="absolute inset-x-2 bottom-2 line-clamp-2 text-xs font-bold text-white">{editing.title || '(Tiêu đề)'}</p>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Realtime preview với switch Desktop/Mobile */}
+          <div className="mt-4">
+            <VideoPreview video={editing} />
+          </div>
 
           <div className="mt-4 flex gap-2">
             <button onClick={save} className="btn-primary text-sm">💾 Lưu</button>
@@ -200,26 +197,34 @@ export default function VideoManager() {
           Chưa có video — bấm "Thêm video mới" ở trên để thêm.
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {items.map((v) => (
-            <article key={v.id} className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${v.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
-              <img src={v.thumb} alt="" className="h-28 w-20 shrink-0 rounded-lg object-cover" />
-              <div className="flex flex-1 flex-col gap-1 text-sm">
-                <span className={`badge w-fit ${v.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
-                  ● {v.status === 'active' ? 'Đang hiển thị' : 'Đã ẩn'} · #{v.order ?? 0}
-                </span>
-                <div className="line-clamp-2 font-semibold">{v.title}</div>
-                <div className="text-[11px] text-brand-ink-500">{v.views} · {v.duration}</div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <button onClick={() => startEdit(v)} className="rounded-full bg-brand-ink-100 px-2.5 py-1 text-[11px] font-semibold hover:bg-brand-ink-200">✏️ Sửa</button>
-                  <button onClick={() => toggleStatus(v)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${v.status === 'hidden' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
-                    {v.status === 'hidden' ? '👁 Hiện' : '🙈 Ẩn'}
-                  </button>
-                  <button onClick={() => moveToTrash(v)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700" title="Đưa vào thùng rác (có thể khôi phục)">🗑 Thùng rác</button>
-                </div>
-              </div>
-            </article>
-          ))}
+        <div className="space-y-3">
+          <div className="rounded-2xl bg-blue-50 px-3 py-2 text-[11px] text-blue-700 ring-1 ring-blue-200">
+            💡 Kéo icon <span className="inline-block rounded bg-white px-1.5 py-0.5 font-bold">⋮⋮</span> bên trái card để sắp xếp lại thứ tự video.
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <DragSortable items={items} onReorder={handleReorder} layout="grid"
+              renderItem={(v, dragProps) => (
+                <article className={`flex gap-3 rounded-2xl bg-white p-3 shadow-card ring-1 ${v.status === 'hidden' ? 'ring-amber-200 opacity-70' : 'ring-brand-ink-100'}`}>
+                  <DragHandle dragProps={dragProps} className="self-start" />
+                  <img src={v.thumb} alt="" className="h-28 w-20 shrink-0 rounded-lg object-cover" />
+                  <div className="flex flex-1 flex-col gap-1 text-sm">
+                    <span className={`badge w-fit ${v.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
+                      ● {v.status === 'active' ? 'Đang hiển thị' : 'Đã ẩn'} · #{v.order ?? 0}
+                    </span>
+                    <div className="line-clamp-2 font-semibold">{v.title}</div>
+                    <div className="text-[11px] text-brand-ink-500">{v.views} · {v.duration}</div>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <button onClick={() => startEdit(v)} className="rounded-full bg-brand-ink-100 px-2.5 py-1 text-[11px] font-semibold hover:bg-brand-ink-200">✏️ Sửa</button>
+                      <button onClick={() => toggleStatus(v)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${v.status === 'hidden' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
+                        {v.status === 'hidden' ? '👁 Hiện' : '🙈 Ẩn'}
+                      </button>
+                      <button onClick={() => moveToTrash(v)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700" title="Đưa vào thùng rác (có thể khôi phục)">🗑 Thùng rác</button>
+                    </div>
+                  </div>
+                </article>
+              )}
+            />
+          </div>
         </div>
       )}
     </div>
