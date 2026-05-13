@@ -4,7 +4,6 @@ import { isAuthenticated } from './services/auth';
 import ScrollToTop from './components/ScrollToTop';
 import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
-import StickyCTA from './components/StickyCTA';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import TrackingScripts from './components/TrackingScripts';
@@ -108,7 +107,9 @@ function AppShell() {
       {!isAdminRoute && (
         <>
           <Footer />
-          <StickyCTA />
+          {/* StickyCTA "Theo dõi mình" đã bỏ — che product card + nút Mua, hại
+              conversion. Follow CTA giữ ở ProfileHeader (top) + tab "Theo dõi"
+              trong BottomNav (bottom mobile) đã đủ entry point. */}
           <BottomNav />
         </>
       )}
