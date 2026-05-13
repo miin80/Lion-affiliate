@@ -8,6 +8,7 @@ import TagsInput from './TagsInput';
 import ProductPreview from './previews/ProductPreview';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import DraftBanner from './DraftBanner';
+import { parseShopeePriceText } from '../../utils/parseShopeePrice';
 
 const BADGE_OPTIONS = [
   { key: 'hot', label: '🔥 Hot' },
@@ -196,6 +197,28 @@ export default function EditProductModal({ product, onClose, onSaved }) {
                     ))}
                   </select>
                 </Field>
+                {/* Quick paste giá từ Shopee */}
+                <div className="sm:col-span-2 rounded-2xl bg-blue-50 p-3 ring-1 ring-blue-200">
+                  <label className="text-xs font-bold text-blue-700">
+                    📋 Dán giá nhanh từ Shopee
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder={'VD: 91.000đ - 238.000đ\\n105.000đ - 276.000đ\\n-13%'}
+                    onChange={(e) => {
+                      const parsed = parseShopeePriceText(e.target.value);
+                      if (!parsed) return;
+                      const patch = {};
+                      if (parsed.priceMin) { patch.priceMin = parsed.priceMin; patch.price = parsed.priceMin; }
+                      if (parsed.priceMax) patch.priceMax = parsed.priceMax;
+                      if (parsed.oldPriceMin) { patch.oldPriceMin = parsed.oldPriceMin; patch.originalPrice = parsed.oldPriceMin; }
+                      if (parsed.oldPriceMax) patch.oldPriceMax = parsed.oldPriceMax;
+                      if (parsed.discountPercent) patch.discountPercent = parsed.discountPercent;
+                      update(patch);
+                    }}
+                    className="input-base mt-1.5 resize-none text-sm"
+                  />
+                </div>
                 <Field label="Giá Min (VND)" hint="Giá thấp nhất / current price">
                   <input
                     type="number"

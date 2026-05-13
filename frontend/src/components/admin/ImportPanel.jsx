@@ -7,6 +7,7 @@ import { detectPlatform } from '../../config/affiliate';
 import { importProductApi, saveProductApi } from '../../services/api';
 import { formatVND } from '../../utils/format';
 import { CATEGORIES } from '../../data/categories';
+import { parseShopeePriceText } from '../../utils/parseShopeePrice';
 
 const EMPTY = {
   sourceUrl: '',
@@ -237,6 +238,42 @@ export default function ImportPanel() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-extrabold">📝 Chỉnh sửa & xem trước</h2>
             <span className="text-xs text-brand-ink-500">Sửa tay nếu thiếu trường nào</span>
+          </div>
+
+          {/* 📋 Quick paste giá từ Shopee — vì Shopee chặn API server-side, giá không thể auto.
+              User mở Shopee, copy chuỗi giá đã thấy → paste vào đây → backend parse tự động. */}
+          <div className="mb-4 rounded-2xl bg-blue-50 p-3 ring-1 ring-blue-200">
+            <label className="text-xs font-bold text-blue-700">
+              📋 Dán giá nhanh từ Shopee
+              <span className="ml-1 font-normal text-blue-600">
+                (mở Shopee → bôi đen dòng giá → Ctrl+C → paste vào đây)
+              </span>
+            </label>
+            <textarea
+              rows={3}
+              placeholder={'VD dán nguyên 3 dòng:\n91.000đ - 238.000đ\n105.000đ - 276.000đ\n-13%'}
+              onChange={(e) => {
+                const parsed = parseShopeePriceText(e.target.value);
+                if (!parsed) return;
+                const patch = {};
+                if (parsed.priceMin) {
+                  patch.priceMin = parsed.priceMin;
+                  patch.price = parsed.priceMin;
+                }
+                if (parsed.priceMax) patch.priceMax = parsed.priceMax;
+                if (parsed.oldPriceMin) {
+                  patch.oldPriceMin = parsed.oldPriceMin;
+                  patch.originalPrice = parsed.oldPriceMin;
+                }
+                if (parsed.oldPriceMax) patch.oldPriceMax = parsed.oldPriceMax;
+                if (parsed.discountPercent) patch.discountPercent = parsed.discountPercent;
+                update(patch);
+              }}
+              className="input-base mt-1.5 resize-none text-sm"
+            />
+            <p className="mt-1 text-[10px] text-blue-600">
+              💡 Backend tự parse: 1-2 số đầu = giá hiện tại (min/max), 1-2 số tiếp = giá gốc, có "-X%" = discount.
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
