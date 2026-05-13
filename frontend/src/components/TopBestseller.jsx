@@ -24,7 +24,7 @@ export default function TopBestseller({ onOpen, products }) {
   if (!top.length) return null;
 
   return (
-    <section className="container-page mt-10 sm:mt-14">
+    <section className="container-page mt-8 sm:mt-12">
       <div className="mb-4">
         <h2 className="text-xl font-extrabold sm:text-2xl">🏆 Top bán chạy</h2>
         <p className="text-xs text-brand-ink-500 sm:text-sm">

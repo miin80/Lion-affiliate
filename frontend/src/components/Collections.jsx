@@ -15,7 +15,7 @@ export default function Collections() {
 
   if (loading && !items.length) {
     return (
-      <section className="container-page mt-10 sm:mt-14">
+      <section className="container-page mt-8 sm:mt-12">
         <div className="mb-4">
           <div className="skeleton h-6 w-56 rounded" />
         </div>
@@ -25,7 +25,7 @@ export default function Collections() {
   }
   if (!items.length) return null;
   return (
-    <section className="container-page mt-10 sm:mt-14">
+    <section className="container-page mt-8 sm:mt-12">
       <div className="mb-4">
         <h2 className="text-xl font-extrabold sm:text-2xl">📚 Bộ sưu tập của mình</h2>
         <p className="text-xs text-brand-ink-500 sm:text-sm">

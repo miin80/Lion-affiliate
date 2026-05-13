@@ -17,7 +17,7 @@ export default function VideoReels() {
   // Loading lần đầu (cache rỗng): hiện skeleton
   if (loading && !items.length) {
     return (
-      <section className="container-page mt-10 sm:mt-14">
+      <section className="container-page mt-8 sm:mt-12">
         <div className="mb-4">
           <div className="skeleton h-6 w-48 rounded" />
         </div>

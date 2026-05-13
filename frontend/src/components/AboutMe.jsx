@@ -25,32 +25,32 @@ export default function AboutMe() {
   const intro = about.intro || 'Mình chuyên review những đồ thật đã dùng — không quảng cáo trên trời, không tâng bốc. Mỗi tuần mình tìm và thử:';
 
   return (
-    <section className="container-page mt-10 sm:mt-12">
+    <section className="container-page mt-8 sm:mt-10">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="overflow-hidden rounded-3xl bg-white p-6 shadow-card ring-1 ring-brand-ink-100 sm:p-8"
+        className="overflow-hidden rounded-3xl bg-white p-5 shadow-card ring-1 ring-brand-ink-100 sm:p-7"
       >
-        <div className="grid items-center gap-6 sm:grid-cols-[auto_1fr] sm:gap-8">
+        <div className="grid items-center gap-5 sm:grid-cols-[auto_1fr] sm:gap-7">
           {profile.avatar && (
             <img
               src={profile.avatar}
               alt={profile.name}
               loading="lazy"
-              className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-soft ring-2 ring-white sm:h-28 sm:w-28"
+              className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-soft ring-2 ring-white sm:h-24 sm:w-24"
             />
           )}
           <div>
-            <h2 className="text-xl font-extrabold sm:text-2xl">{headline}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-brand-ink-600 sm:text-base">
+            <h2 className="text-lg font-extrabold sm:text-xl">{headline}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-brand-ink-600 sm:text-[15px]">
               {intro}
             </p>
           </div>
         </div>
 
-        <ul className="mt-5 grid gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-3">
+        <ul className="mt-4 grid gap-2 sm:mt-5 sm:grid-cols-2 sm:gap-3">
           {highlights.map((h, i) => (
             <li
               key={i}

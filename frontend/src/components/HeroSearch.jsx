@@ -28,12 +28,12 @@ export default function HeroSearch({ value, onChange, onDealClick }) {
   };
 
   return (
-    <section className="container-page mt-6 sm:mt-10">
+    <section className="container-page mt-5 sm:mt-8">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-soft p-5 ring-1 ring-brand-ink-100 sm:p-8"
+        className="relative overflow-hidden rounded-3xl bg-gradient-soft p-5 ring-1 ring-brand-ink-100 sm:p-7"
       >
         <div className="pointer-events-none absolute -left-16 -top-12 h-40 w-40 rounded-full bg-brand-orange-200/60 blur-3xl" />
         <div className="pointer-events-none absolute -right-12 -bottom-10 h-44 w-44 rounded-full bg-brand-pink-200/60 blur-3xl" />

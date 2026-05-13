@@ -55,7 +55,7 @@ export default function Home() {
               hấp dẫn (animated icon + CTAs + ghost cards). Khi có sản phẩm rồi:
               hiện tabs + grid bình thường. */}
           {!loading && products.length === 0 ? (
-            <section id="product-grid" className="container-page mt-8 scroll-mt-6 sm:mt-10">
+            <section id="product-grid" className="container-page mt-6 scroll-mt-6 sm:mt-8">
               <EmptyDealsState />
             </section>
           ) : (

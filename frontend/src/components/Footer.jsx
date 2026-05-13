@@ -17,14 +17,46 @@ const SOCIAL_ICONS = {
   shopee: ShopeeIcon,
 };
 
+// Social proof stats — chỉ hiện cái nào có value (không hiện 0 / số fake).
+// Admin có thể set qua settings.footer.stats = [{icon, value, label}] sau này.
+// Default: 3 entries với value rỗng → tự ẩn cho tới khi admin populate số thật.
+const DEFAULT_FOOTER_STATS = [
+  { icon: '🛍', value: '', label: 'Sản phẩm đã review' },
+  { icon: '🔥', value: '', label: 'Lượt click mỗi tháng' },
+  { icon: '⭐', value: '', label: 'Phản hồi tích cực' },
+];
+
 export default function Footer() {
   const { settings } = useSiteSettings();
   const profile = settings.profile || {};
   const socials = settings.socials || {};
+  const footerStats = Array.isArray(settings.footer?.stats) && settings.footer.stats.length
+    ? settings.footer.stats
+    : DEFAULT_FOOTER_STATS;
+  const visibleStats = footerStats.filter((s) => s && String(s.value || '').trim());
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-16 border-t border-brand-ink-100 bg-brand-ink-50 pb-24 sm:pb-10">
-      <div className="container-page py-10">
+    <footer className="mt-12 border-t border-brand-ink-100 bg-brand-ink-50 pb-24 sm:pb-10">
+      <div className="container-page py-8">
+        {/* Social proof — chỉ hiện khi admin set ít nhất 1 stat */}
+        {visibleStats.length > 0 && (
+          <div className="mb-8 grid grid-cols-3 gap-2 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-brand-ink-100 sm:gap-6 sm:p-5">
+            {visibleStats.map((s, i) => (
+              <div key={i} className="flex flex-col items-center text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left">
+                <span className="text-2xl sm:text-3xl" aria-hidden>{s.icon}</span>
+                <div>
+                  <div className="text-base font-extrabold leading-none text-brand-ink-900 sm:text-xl">
+                    {s.value}
+                  </div>
+                  <div className="mt-0.5 text-[10px] uppercase tracking-wide text-brand-ink-500 sm:text-xs">
+                    {s.label}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
