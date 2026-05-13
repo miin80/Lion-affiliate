@@ -15,11 +15,13 @@ export const SITE = {
     'Tổng hợp sản phẩm Minh Quang đã review trên TikTok / Facebook. Deal hot, đồ đáng mua, sản phẩm nội địa cao cấp.',
   url: 'https://lion-affiliate.vercel.app',
   avatar: DEFAULT_AVATAR_DATA_URL,
-  cover: 'https://picsum.photos/seed/cover/1200/600',
+  // Stats để rỗng — admin tự điền số thật trong /admin → Cài đặt.
+  // ProfileHeader đã có guard {profile.stats.X && ...} nên không render
+  // dòng nào khi chưa điền → tránh hiển thị số fake cho khách.
   stats: {
-    followers: '128K',
-    reviewed: '320+',
-    happy: '98%',
+    followers: '',
+    reviewed: '',
+    happy: '',
   },
   socials: {
     tiktok: '',

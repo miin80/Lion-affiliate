@@ -2,13 +2,26 @@ import { Link, useParams } from 'react-router-dom';
 import Seo from '../components/Seo';
 import LazyImage from '../components/LazyImage';
 import ProductCard from '../components/ProductCard';
-import { getBlogPost } from '../data/blogPosts';
+import { BLOG_POSTS as MOCK_BLOG, getBlogPost } from '../data/blogPosts';
 import { getProductsByIds } from '../data/products';
 import { formatDate } from '../utils/format';
+import { useResource } from '../hooks/useResource';
+import { blogsApi } from '../services/resources';
+import { useProducts } from '../hooks/useProducts';
+import { SHOW_DEMO_DATA } from '../utils/demoFlag';
 
 export default function BlogPost() {
   const { slug } = useParams();
-  const post = getBlogPost(slug);
+  // Đọc real blogs từ backend (cache stale-while-revalidate). Fallback mock chỉ khi dev mode.
+  const fallback = SHOW_DEMO_DATA ? MOCK_BLOG : [];
+  const { items, loading } = useResource(blogsApi, fallback, 'lion_affiliate_blogs_v2');
+  const { products: realProducts } = useProducts();
+  // Match theo slug: ưu tiên blog real, fallback sang mock (dùng cho deep-link cũ).
+  const post = items.find((p) => p.slug === slug) || getBlogPost(slug);
+
+  if (loading && !post) {
+    return <div className="container-page py-20 text-center text-brand-ink-500">Đang tải...</div>;
+  }
   if (!post) {
     return (
       <div className="container-page py-20 text-center">
@@ -18,7 +31,12 @@ export default function BlogPost() {
       </div>
     );
   }
-  const products = getProductsByIds(post.productSlugs);
+  // Match products: ưu tiên real (slug hoặc id), fallback mock.
+  const slugs = post.productSlugs || [];
+  const realMatches = slugs
+    .map((s) => realProducts.find((p) => p.slug === s || p.id === s))
+    .filter(Boolean);
+  const products = realMatches.length ? realMatches : getProductsByIds(slugs);
 
   return (
     <>

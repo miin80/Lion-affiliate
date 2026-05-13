@@ -36,7 +36,7 @@ export default function Blog() {
             <p className="max-w-md text-sm text-brand-ink-500">
               {isAuthenticated()
                 ? 'Chưa có bài viết nào. Vào trang quản trị → Blog để thêm bài review đầu tiên.'
-                : 'Bài viết mới đang được chuẩn bị. Hãy quay lại sau để đọc những review chân thực nhất nhé!'}
+                : 'Các bài review chuyên sâu sắp ra mắt. Hãy follow để là người đầu tiên đọc!'}
             </p>
             {isAuthenticated() && (
               <Link to="/admin" className="btn-primary mt-2 text-xs">

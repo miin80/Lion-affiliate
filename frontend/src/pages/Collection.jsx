@@ -4,14 +4,30 @@ import Seo from '../components/Seo';
 import LazyImage from '../components/LazyImage';
 import ProductGrid from '../components/ProductGrid';
 import ProductModal from '../components/ProductModal';
-import { getCollection } from '../data/collections';
+import { COLLECTIONS as MOCK_COLLECTIONS, getCollection } from '../data/collections';
 import { getProductsByIds } from '../data/products';
+import { useResource } from '../hooks/useResource';
+import { collectionsApi } from '../services/resources';
+import { useProducts } from '../hooks/useProducts';
+import { SHOW_DEMO_DATA } from '../utils/demoFlag';
 
 export default function Collection() {
   const { slug } = useParams();
-  const collection = getCollection(slug);
+  // Real collections từ backend (cache stale-while-revalidate). Fallback mock chỉ khi dev.
+  const fallback = SHOW_DEMO_DATA ? MOCK_COLLECTIONS : [];
+  const { items: realCollections, loading } = useResource(
+    collectionsApi,
+    fallback,
+    'lion_affiliate_collections_v2'
+  );
+  const { products: realProducts } = useProducts();
   const [active, setActive] = useState(null);
 
+  const collection = realCollections.find((c) => c.slug === slug) || getCollection(slug);
+
+  if (loading && !collection) {
+    return <div className="container-page py-20 text-center text-brand-ink-500">Đang tải...</div>;
+  }
   if (!collection) {
     return (
       <div className="container-page py-20 text-center">
@@ -21,7 +37,13 @@ export default function Collection() {
       </div>
     );
   }
-  const products = getProductsByIds(collection.productSlugs);
+
+  // Match products: ưu tiên real product theo slug hoặc id, fallback sang mock.
+  const slugs = collection.productSlugs || [];
+  const realMatches = slugs
+    .map((s) => realProducts.find((p) => p.slug === s || p.id === s))
+    .filter(Boolean);
+  const products = realMatches.length ? realMatches : getProductsByIds(slugs);
 
   return (
     <>

@@ -57,11 +57,14 @@ export default function Home() {
           />
 
           <section id="product-grid" className="container-page mt-4 scroll-mt-6 sm:mt-6">
-            <div className="mb-3 flex items-center justify-between text-xs text-brand-ink-500">
-              <span>
-                {loading ? 'Đang tải...' : `${filtered.length} sản phẩm${search && ` cho "${search}"`}`}
-              </span>
-            </div>
+            {/* Ẩn dòng đếm khi rỗng (0 sản phẩm) — chỉ hiện khi đang load hoặc đã có sản phẩm */}
+            {(loading || filtered.length > 0) && (
+              <div className="mb-3 flex items-center justify-between text-xs text-brand-ink-500">
+                <span>
+                  {loading ? 'Đang tải...' : `${filtered.length} sản phẩm${search && ` cho "${search}"`}`}
+                </span>
+              </div>
+            )}
             {loading && products.length === 0 ? (
               <ProductGridSkeleton count={8} />
             ) : (
@@ -71,7 +74,7 @@ export default function Home() {
                 emptyIcon={products.length === 0 ? '✨' : '🔍'}
                 emptyText={
                   products.length === 0
-                    ? '✨ Sản phẩm đang được cập nhật. Deal mới sẽ sớm xuất hiện — quay lại sau nhé!'
+                    ? 'Các sản phẩm chọn lọc sẽ sớm có mặt tại đây. Follow để là người đầu tiên nhận deal!'
                     : 'Không tìm thấy sản phẩm phù hợp. Thử từ khoá khác nhé.'
                 }
                 emptyTextAdmin={

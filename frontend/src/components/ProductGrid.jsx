@@ -30,7 +30,8 @@ export default function ProductGrid({
     const text =
       isAdmin && emptyTextAdmin
         ? emptyTextAdmin
-        : emptyText || 'Sản phẩm đang được cập nhật — deal mới sẽ sớm xuất hiện.';
+        : emptyText ||
+          'Các sản phẩm chọn lọc sẽ sớm có mặt tại đây. Hãy follow để không bỏ lỡ deal mới!';
     return (
       <div className="flex flex-col items-center gap-3 rounded-3xl bg-brand-ink-50 p-10 text-center">
         <div className="text-5xl">{emptyIcon}</div>

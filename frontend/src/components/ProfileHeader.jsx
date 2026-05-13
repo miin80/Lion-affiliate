@@ -62,8 +62,8 @@ export default function ProfileHeader() {
             </p>
           )}
 
-          {/* Stats */}
-          {profile.stats && (
+          {/* Stats — chỉ render khi có ít nhất 1 số stat (tránh div rỗng tạo khoảng trống lạ). */}
+          {profile.stats && (profile.stats.followers || profile.stats.reviewed || profile.stats.happy) && (
             <div className="mt-3 flex items-center gap-5 text-xs">
               {profile.stats.followers && (
                 <Stat number={profile.stats.followers} label="Followers" />

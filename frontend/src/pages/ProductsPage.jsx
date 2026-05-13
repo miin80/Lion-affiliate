@@ -31,9 +31,12 @@ export default function ProductsPage() {
         onSortChange={setSort}
       />
       <section className="container-page mt-4 sm:mt-6">
-        <div className="mb-3 text-xs text-brand-ink-500">
-          {loading ? 'Đang tải...' : `${filtered.length} sản phẩm`}
-        </div>
+        {/* Ẩn dòng đếm khi rỗng để tránh hiện "0 sản phẩm" trông kém chuyên nghiệp */}
+        {(loading || filtered.length > 0) && (
+          <div className="mb-3 text-xs text-brand-ink-500">
+            {loading ? 'Đang tải...' : `${filtered.length} sản phẩm`}
+          </div>
+        )}
         {loading ? (
           <ProductGridSkeleton count={8} />
         ) : (
