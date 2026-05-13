@@ -19,9 +19,16 @@ export default function MediaListEditor({
   const [input, setInput] = useState('');
 
   const add = () => {
-    const v = input.trim();
-    if (!v) return;
-    onChange([...value, v]);
+    const text = input.trim();
+    if (!text) return;
+    // Hỗ trợ paste nhiều URL cùng lúc: tách theo newline / dấu phẩy / dấu chấm phẩy.
+    // User flow điển hình: copy-paste địa chỉ ảnh Shopee từng cái → mỗi cái 1 dòng → bấm Thêm 1 lần.
+    const parts = text
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const urls = parts.length > 1 ? parts : [text];
+    onChange([...value, ...urls]);
     setInput('');
   };
   const remove = (i) => onChange(value.filter((_, idx) => idx !== i));
@@ -96,19 +103,28 @@ export default function MediaListEditor({
         </ul>
       )}
 
-      <div className="mt-2 flex gap-2">
-        <input
-          type="url"
+      <div className="mt-2 flex items-start gap-2">
+        <textarea
+          rows={1}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add())}
+          onKeyDown={(e) => {
+            // Enter (không Shift) = thêm. Shift+Enter = xuống dòng (paste nhiều URL).
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              add();
+            }
+          }}
           placeholder={placeholder}
-          className="flex-1 rounded-full border border-brand-ink-200 bg-white px-4 py-2 text-sm focus:border-brand-orange-400 focus:outline-none focus:ring-2 focus:ring-brand-orange-200"
+          className="flex-1 resize-y rounded-2xl border border-brand-ink-200 bg-white px-4 py-2 text-sm focus:border-brand-orange-400 focus:outline-none focus:ring-2 focus:ring-brand-orange-200"
         />
-        <button type="button" onClick={add} className="btn-ghost text-xs">
+        <button type="button" onClick={add} className="btn-ghost shrink-0 text-xs">
           + Thêm
         </button>
       </div>
+      <p className="mt-1 text-[11px] text-brand-ink-400">
+        💡 Mẹo: chuột phải ảnh trên Shopee → "Sao chép địa chỉ hình ảnh" → dán vào đây. Hỗ trợ paste nhiều URL cùng lúc (mỗi URL 1 dòng hoặc cách nhau bằng dấu phẩy).
+      </p>
 
       {/* Cloudinary upload — chỉ cho ảnh, ẩn nếu chưa config env */}
       {type === 'image' && CLOUDINARY_ENABLED && (

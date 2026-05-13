@@ -1,8 +1,12 @@
 // Shopee scraper.
-// Cách 1 (ưu tiên): gọi internal API JSON từ URL /product/{shopId}/{itemId}.
-//                   Hoạt động KHÔNG cần Puppeteer (chỉ axios) — phù hợp Render Free.
-// Cách 2 (fallback): Puppeteer đọc DOM/meta — chỉ chạy nếu USE_PUPPETEER=true.
+// Fallback chain:
+//  1. Internal API JSON (/api/v4/item/get) — không cần Puppeteer.
+//  2. HTML page fetch + parse Open Graph + __INITIAL_STATE__ + JSON-LD.
+//  3. URL slug decode (lấy title từ slug nếu pattern là /<slug>-i.<shop>.<item>).
+//  4. Puppeteer (chỉ chạy nếu USE_PUPPETEER=true).
+// Trả null nếu tất cả fail → frontend cho admin nhập tay.
 import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 const USE_PUPPETEER = String(process.env.USE_PUPPETEER ?? 'true') === 'true';
 
@@ -32,7 +36,7 @@ function priceFrom(raw) {
   return raw / 1e5;
 }
 
-// "20800" → "20k+", "1500000" → "1M+", "150" → "150". Gần với cách Shopee hiển thị.
+// "20800" → "20k+", "1500000" → "1M+", "150" → "150".
 function formatSold(n) {
   const v = Number(n) || 0;
   if (v >= 1_000_000) {
@@ -43,6 +47,18 @@ function formatSold(n) {
   return String(v);
 }
 
+// Lấy title từ slug URL: ...Tinh-Dau-Tram-i.123.456 → "Tinh Dau Tram"
+function titleFromUrl(url) {
+  try {
+    const path = decodeURIComponent(new URL(url).pathname);
+    const m = path.match(/\/([^/]+)-i\.\d+\.\d+/i);
+    if (!m) return null;
+    return m[1].replace(/-+/g, ' ').trim();
+  } catch {
+    return null;
+  }
+}
+
 async function tryShopeeApi(url) {
   const ids = parseIds(url);
   if (!ids) {
@@ -51,7 +67,7 @@ async function tryShopeeApi(url) {
   }
   const host = new URL(url).host;
   const apiUrl = `https://${host}/api/v4/item/get?itemid=${ids.itemId}&shopid=${ids.shopId}`;
-  console.log(`[shopee] Calling API: ${apiUrl}`);
+  console.log(`[shopee] API: ${apiUrl}`);
   try {
     const { data } = await axios.get(apiUrl, {
       timeout: 15000,
@@ -74,36 +90,29 @@ async function tryShopeeApi(url) {
     const cdn = 'https://cf.shopee.vn/file/';
     const images = (item.images || []).map((id) => `${cdn}${id}`);
 
-    // Giá hiện tại
     const price = priceFrom(item.price);
     const priceMin = priceFrom(item.price_min);
     const priceMax = priceFrom(item.price_max);
-    // Giá gốc (gạch ngang)
     const originalPrice = priceFrom(item.price_before_discount);
     const oldPriceMin = priceFrom(item.price_min_before_discount);
     const oldPriceMax = priceFrom(item.price_max_before_discount);
 
-    // Discount % — Shopee `raw_discount` đã là số nguyên 0-100 (vd 13 = -13%).
     const discountPercent =
       typeof item.raw_discount === 'number' && item.raw_discount > 0
         ? item.raw_discount
         : null;
 
-    // Rating
     const ratingStar = item.item_rating?.rating_star;
     const rating =
       typeof ratingStar === 'number' && ratingStar > 0
         ? Math.round(ratingStar * 10) / 10
         : null;
     const rcArr = item.item_rating?.rating_count || [];
-    // rcArr[0] = total all reviews
     const ratingCount = Array.isArray(rcArr) && rcArr.length ? rcArr[0] || 0 : 0;
 
-    // Sold
     const sold = item.historical_sold ?? item.sold ?? 0;
-    const soldText = formatSold(sold);
+    const soldText = sold ? formatSold(sold) : null;
 
-    // Category — array of {catid, display_name}; lấy leaf cuối cùng.
     const cats = item.categories || [];
     const category = cats.length ? cats[cats.length - 1]?.display_name || null : null;
 
@@ -112,26 +121,18 @@ async function tryShopeeApi(url) {
       item.video_info_list?.[0]?.formats?.[0]?.url ||
       null;
 
-    console.log(
-      `[shopee] ✅ Got product: ${item.name?.slice(0, 50)} | price=${price} range=${priceMin}-${priceMax} disc=${discountPercent} rating=${rating} sold=${soldText}`
-    );
-
     return {
       title: item.name || '',
       description: (item.description || '').slice(0, 800),
       images,
       video: videoUrl,
-      // Giá đơn giá (cheapest variant) — backward compat
       price,
       originalPrice,
-      // Giá range (variant) — mới
       priceMin,
       priceMax,
       oldPriceMin,
       oldPriceMax,
-      // Badge giảm giá Shopee hiển thị (raw value, ưu tiên hơn discount tính từ price/originalPrice)
       discountPercent,
-      // Rating + sold + category — mới
       rating,
       ratingCount,
       sold,
@@ -144,17 +145,139 @@ async function tryShopeeApi(url) {
   }
 }
 
-export async function scrapeShopee(url) {
-  // 1. Shopee internal API (không cần Puppeteer)
-  const apiData = await tryShopeeApi(url);
-  if (apiData?.title) return apiData;
+/**
+ * Fallback: fetch HTML page và parse OG meta + __INITIAL_STATE__ + JSON-LD.
+ * Hỗ trợ khi API trả thiếu / bị chặn.
+ */
+async function tryShopeeHtml(url) {
+  console.log(`[shopee-html] Fetch: ${url}`);
+  try {
+    const { data: html } = await axios.get(url, {
+      timeout: 15000,
+      headers: {
+        'User-Agent': UA_DESKTOP,
+        Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+      },
+      maxRedirects: 5,
+    });
+    const $ = cheerio.load(html);
 
-  // 2. Fallback Puppeteer (chỉ khi enabled)
+    // 1. Open Graph
+    const og = {
+      title: $('meta[property="og:title"]').attr('content') || '',
+      description: $('meta[property="og:description"]').attr('content') || '',
+      image: $('meta[property="og:image"]').attr('content') || '',
+    };
+
+    // 2. <title> tag fallback (Shopee thường dạng "Title | Shopee Việt Nam")
+    const docTitle = ($('title').text() || '').split('|')[0].trim();
+
+    // 3. JSON-LD structured data
+    const ldImages = [];
+    let ldPrice = null;
+    let ldRating = null;
+    $('script[type="application/ld+json"]').each((_, el) => {
+      try {
+        const parsed = JSON.parse($(el).html());
+        const nodes = Array.isArray(parsed) ? parsed : [parsed];
+        nodes.forEach((n) => {
+          if (!n) return;
+          if (n['@type'] === 'Product' || n.image) {
+            if (Array.isArray(n.image)) ldImages.push(...n.image);
+            else if (typeof n.image === 'string') ldImages.push(n.image);
+          }
+          if (n.offers?.price) ldPrice = Number(n.offers.price) || null;
+          if (n.aggregateRating?.ratingValue) {
+            ldRating = Math.round(Number(n.aggregateRating.ratingValue) * 10) / 10;
+          }
+        });
+      } catch {}
+    });
+
+    const images = [og.image, ...ldImages].filter(Boolean);
+    const title = og.title || docTitle || '';
+
+    return {
+      title,
+      description: og.description || '',
+      images,
+      price: ldPrice,
+      rating: ldRating,
+    };
+  } catch (err) {
+    console.warn('[shopee-html] Fetch failed:', err.response?.status, err.message);
+    return null;
+  }
+}
+
+// Merge 2 partial results — ưu tiên field nào có giá trị thật (truthy).
+function mergeResults(primary, fallback) {
+  if (!primary && !fallback) return null;
+  if (!primary) return fallback;
+  if (!fallback) return primary;
+  return {
+    title: primary.title || fallback.title || '',
+    description: primary.description || fallback.description || '',
+    images: primary.images?.length ? primary.images : fallback.images || [],
+    video: primary.video || fallback.video || null,
+    price: primary.price ?? fallback.price ?? null,
+    originalPrice: primary.originalPrice ?? fallback.originalPrice ?? null,
+    priceMin: primary.priceMin ?? null,
+    priceMax: primary.priceMax ?? null,
+    oldPriceMin: primary.oldPriceMin ?? null,
+    oldPriceMax: primary.oldPriceMax ?? null,
+    discountPercent: primary.discountPercent ?? null,
+    rating: primary.rating ?? fallback.rating ?? null,
+    ratingCount: primary.ratingCount ?? null,
+    sold: primary.sold ?? null,
+    soldText: primary.soldText || null,
+    category: primary.category || null,
+  };
+}
+
+function isIncomplete(data) {
+  if (!data) return true;
+  if (!data.title) return true;
+  if (!data.images?.length) return true;
+  return false;
+}
+
+export async function scrapeShopee(url) {
+  // 1. Shopee internal API
+  const apiData = await tryShopeeApi(url);
+
+  // 2. Nếu API trả thiếu title/ảnh → fallback HTML
+  let htmlData = null;
+  if (isIncomplete(apiData)) {
+    console.log('[shopee] API incomplete, trying HTML fallback...');
+    htmlData = await tryShopeeHtml(url);
+  }
+
+  // 3. Merge — API là source chính, HTML chỉ bù fields thiếu.
+  let merged = mergeResults(apiData, htmlData);
+
+  // 4. Slug URL fallback cho title (nếu cả 2 trên vẫn không có)
+  if (merged && !merged.title) {
+    merged.title = titleFromUrl(url) || '';
+  }
+  if (!merged && (apiData || htmlData)) {
+    merged = apiData || htmlData;
+    if (!merged.title) merged.title = titleFromUrl(url) || '';
+  }
+
+  if (merged?.title || merged?.images?.length) {
+    console.log(
+      `[shopee] ✅ Final: title="${merged.title?.slice(0, 50)}" imgs=${merged.images?.length || 0} price=${merged.price ?? '-'} range=${merged.priceMin ?? '-'}-${merged.priceMax ?? '-'} disc=${merged.discountPercent ?? '-'}`
+    );
+    return merged;
+  }
+
+  // 5. Puppeteer (chỉ khi enabled)
   if (USE_PUPPETEER) {
     const { scrapeWithPuppeteer } = await import('./puppeteer-meta.js');
     return scrapeWithPuppeteer(url, { waitMs: 4000 });
   }
 
-  // 3. Không có gì
   return null;
 }
