@@ -141,10 +141,10 @@ export default function EditProductModal({ product, onClose, onSaved }) {
             exit={{ y: 60, opacity: 0 }}
             transition={{ type: 'spring', damping: 26, stiffness: 280 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative max-h-[92vh] w-full overflow-hidden rounded-t-3xl bg-white sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl"
+            className="relative flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white sm:max-h-[90vh] sm:max-w-2xl sm:rounded-3xl"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-brand-ink-100 p-4 sm:p-5">
+            {/* Header — không co lại khi body dài, luôn nhìn thấy */}
+            <div className="flex shrink-0 items-center justify-between border-b border-brand-ink-100 p-4 sm:p-5">
               <div>
                 <h2 className="text-lg font-extrabold">✏️ Chỉnh sửa sản phẩm</h2>
                 <p className="text-[11px] text-brand-ink-500">
@@ -160,8 +160,8 @@ export default function EditProductModal({ product, onClose, onSaved }) {
               </button>
             </div>
 
-            {/* Body */}
-            <div className="max-h-[calc(92vh-120px)] space-y-4 overflow-y-auto p-4 sm:max-h-[calc(90vh-120px)] sm:p-5">
+            {/* Body — flex-1 chiếm phần còn lại, tự scroll khi tràn */}
+            <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
               {/* Draft banner — khôi phục nội dung chưa lưu */}
               {hasSavedDraft && (
                 <DraftBanner
@@ -349,8 +349,8 @@ export default function EditProductModal({ product, onClose, onSaved }) {
               <ProductPreview product={draft} />
             </div>
 
-            {/* Footer */}
-            <div className="flex items-center justify-end gap-2 border-t border-brand-ink-100 p-4 sm:p-5">
+            {/* Footer — không co lại, luôn nhìn thấy nút Save/Huỷ ở dưới cùng */}
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-brand-ink-100 bg-white p-4 sm:p-5">
               <button onClick={onClose} className="btn-ghost text-sm">
                 Huỷ
               </button>
