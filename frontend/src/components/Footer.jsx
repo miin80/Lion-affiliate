@@ -36,8 +36,8 @@ export default function Footer() {
   const visibleStats = footerStats.filter((s) => s && String(s.value || '').trim());
   const year = new Date().getFullYear();
   return (
-    <footer className="mt-12 border-t border-brand-ink-100 bg-brand-ink-50 pb-24 sm:pb-10">
-      <div className="container-page py-8">
+    <footer className="mt-6 border-t border-brand-ink-100 bg-brand-ink-50 pb-24 sm:mt-10 sm:pb-10">
+      <div className="container-page py-6 sm:py-8">
         {/* Social proof — chỉ hiện khi admin set ít nhất 1 stat */}
         {visibleStats.length > 0 && (
           <div className="mb-8 grid grid-cols-3 gap-2 rounded-3xl bg-white p-4 shadow-soft ring-1 ring-brand-ink-100 sm:gap-6 sm:p-5">
@@ -57,7 +57,7 @@ export default function Footer() {
           </div>
         )}
 
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
           <div>
             <div className="flex items-center gap-3">
               <img

@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { HomeIcon, GridIcon, VideoIcon, HeartIcon } from './icons';
+import { HomeIcon, GridIcon, VideoIcon, FireIcon } from './icons';
 import { useSiteSettings } from '../hooks/useSiteSettings';
 
 /**
  * Bottom navigation chỉ hiển thị trên mobile (<sm).
- * 4 tabs: Home, Products, Videos (TikTok external), Follow.
+ * 4 tabs ưu tiên shopper-flow: Home | Danh mục | Video | Deal hot.
+ * Bỏ "Theo dõi" vì người mua affiliate ít follow — Deal hot tăng conversion.
  */
 export default function BottomNav() {
   const { settings } = useSiteSettings();
@@ -12,9 +13,9 @@ export default function BottomNav() {
   const followUrl = settings.buttons?.follow?.url || tiktokUrl;
   const items = [
     { to: '/', icon: HomeIcon, label: 'Home', end: true },
-    { to: '/products', icon: GridIcon, label: 'Sản phẩm' },
+    { to: '/products', icon: GridIcon, label: 'Danh mục' },
     { href: tiktokUrl || followUrl, icon: VideoIcon, label: 'Video', external: true },
-    { href: followUrl, icon: HeartIcon, label: 'Theo dõi', external: true },
+    { to: '/products', icon: FireIcon, label: 'Deal hot' },
   ].filter((it) => it.to || it.href);
 
   return (
@@ -27,7 +28,7 @@ export default function BottomNav() {
           const Icon = it.icon;
           const content = (
             <div className="flex flex-col items-center gap-0.5">
-              <Icon className="h-5 w-5" />
+              <Icon className="h-[18px] w-[18px]" />
               <span className="text-[10px] font-semibold">{it.label}</span>
             </div>
           );
@@ -38,7 +39,7 @@ export default function BottomNav() {
                   href={it.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex flex-1 items-center justify-center py-2.5 text-brand-ink-500"
+                  className="flex flex-1 items-center justify-center py-2 text-brand-ink-500"
                 >
                   {content}
                 </a>
@@ -47,7 +48,7 @@ export default function BottomNav() {
                   to={it.to}
                   end={it.end}
                   className={({ isActive }) =>
-                    `flex flex-1 items-center justify-center py-2.5 transition ${
+                    `flex flex-1 items-center justify-center py-2 transition ${
                       isActive ? 'text-brand-orange-600' : 'text-brand-ink-500'
                     }`
                   }

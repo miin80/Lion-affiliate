@@ -62,7 +62,10 @@ function AppShell() {
       {/* Tracking pixels — chỉ inject khi admin set ID trong Settings.
           Áp dụng cho cả public + admin để theo dõi conversion từ cả 2 phía. */}
       <TrackingScripts />
-      <main className={`min-h-[60vh] ${isAdminRoute ? '' : 'pb-24 sm:pb-0'}`}>
+      {/* Bỏ pb-24 main: Footer đã có pb-24 sm:pb-10 đủ clear BottomNav rồi.
+          Hai layer pb cộng dồn tạo khoảng trắng 96+48px = 144px giữa AboutMe
+          và Footer trên mobile → cụt flow. */}
+      <main className="min-h-[60vh]">
         <ErrorBoundary>
           <Suspense fallback={<Fallback />}>
             <Routes>

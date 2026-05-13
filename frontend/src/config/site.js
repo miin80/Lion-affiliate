@@ -8,7 +8,7 @@ import { DEFAULT_AVATAR_DATA_URL } from './defaultAvatar';
 export const SITE = {
   name: 'Minh Quang Reviews',
   fullName: 'Minh Quang Reviews — Affiliate Store',
-  tagline: 'Đồ tốt mình dùng mỗi ngày',
+  tagline: 'Chọn giúp bạn những món đáng tiền',
   shortBio:
     'Reviewer đời sống · Mỗi tuần 1 sản phẩm đáng mua. Tap ⬇️ để xem deal tốt nhất.',
   description:
