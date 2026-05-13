@@ -113,19 +113,21 @@ export default function ProductCard({ product, index = 0, onOpen }) {
           )}
         </div>
 
-        {/* Price block — Shopee style, range không xuống dòng (truncate). */}
+        {/* Price block — luôn 2 dòng (giá + old price) để mọi card cùng height,
+            old price dùng nbsp khi KHÔNG có để giữ chỗ. truncate + whitespace-
+            nowrap để range "215.000đ - 622.700đ" không bao giờ wrap xấu. */}
         <div className="min-w-0">
           <div className="truncate whitespace-nowrap text-sm font-extrabold text-brand-orange-600 sm:text-base">
             {priceLabel || formatVND(product.price) || '—'}
           </div>
-          {hasOldPrice && (
-            <div className="truncate whitespace-nowrap text-[10px] text-brand-ink-400 line-through sm:text-[11px]">
-              {oldPriceLabel}
-            </div>
-          )}
+          <div className="min-h-[1em] truncate whitespace-nowrap text-[10px] text-brand-ink-400 line-through sm:text-[11px]">
+            {hasOldPrice ? oldPriceLabel : ' '}
+          </div>
         </div>
 
-        {/* CTA — mt-auto đẩy xuống đáy → CTA mọi card thẳng hàng */}
+        {/* CTA — mt-auto đẩy xuống đáy → mọi card cùng hàng button. Mobile
+            padding px-1.5 + ẩn arrow để "Mua ngay" fit trong ~69px card half
+            mà không wrap thành 2 dòng. */}
         <div className="mt-auto grid grid-cols-2 gap-1.5 pt-1.5">
           <button
             type="button"
@@ -133,7 +135,7 @@ export default function ProductCard({ product, index = 0, onOpen }) {
               e.stopPropagation();
               onOpen?.(product);
             }}
-            className="rounded-full bg-brand-ink-100 px-2 py-1.5 text-[11px] font-semibold text-brand-ink-800 transition hover:bg-brand-ink-200 sm:text-xs"
+            className="whitespace-nowrap rounded-full bg-brand-ink-100 px-1.5 py-1.5 text-[11px] font-semibold text-brand-ink-800 transition hover:bg-brand-ink-200 sm:px-2 sm:text-xs"
           >
             Xem deal
           </button>
@@ -145,9 +147,10 @@ export default function ProductCard({ product, index = 0, onOpen }) {
               e.stopPropagation();
               trackClick({ type: 'product', id: product.id, action: 'buy' });
             }}
-            className="inline-flex items-center justify-center gap-1 rounded-full bg-brand-orange-500 px-2 py-1.5 text-[11px] font-bold text-white shadow-cta transition hover:bg-brand-orange-600 sm:text-xs"
+            className="inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-brand-orange-500 px-1.5 py-1.5 text-[11px] font-bold text-white shadow-cta transition hover:bg-brand-orange-600 sm:px-2 sm:text-xs"
           >
-            Mua ngay <ArrowRight className="h-3 w-3" />
+            Mua ngay
+            <ArrowRight className="hidden h-3 w-3 sm:inline-block" />
           </a>
         </div>
       </div>
