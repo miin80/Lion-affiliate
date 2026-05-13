@@ -4,6 +4,8 @@ import { fetchAdminProducts } from '../../services/api';
 import VideoPreview from './previews/VideoPreview';
 import DragSortable, { DragHandle } from './DragSortable';
 import { ManagerCardListSkeleton } from '../Skeletons';
+import { useFormDraft } from '../../hooks/useFormDraft';
+import DraftBanner from './DraftBanner';
 
 const EMPTY = {
   id: null,
@@ -54,6 +56,10 @@ export default function VideoManager() {
   const startEdit = (item) => setEditing(item ? { ...item } : { ...EMPTY, order: items.length });
   const cancelEdit = () => setEditing(null);
 
+  // Auto-save draft theo video.id (hoặc 'new')
+  const draftKey = `video_${editing?.id || 'new'}`;
+  const videoDraft = useFormDraft(draftKey, editing, { enabled: Boolean(editing) });
+
   const save = async () => {
     if (!editing.title?.trim()) return flash('error', 'Cần nhập tiêu đề video');
     if (!editing.thumb?.trim()) return flash('error', 'Cần URL thumbnail');
@@ -62,6 +68,7 @@ export default function VideoManager() {
         ? await videosApi.update(editing.id, editing)
         : await videosApi.save(editing);
       flash('success', `✓ Đã lưu "${saved.title}"`);
+      videoDraft.clearDraft();
       setEditing(null);
       load();
     } catch (err) {
@@ -125,6 +132,20 @@ export default function VideoManager() {
           <h3 className="text-base font-extrabold">
             {editing.id ? '✏️ Sửa video' : '➕ Thêm video mới'}
           </h3>
+
+          {videoDraft.hasSavedDraft && (
+            <div className="mt-3">
+              <DraftBanner
+                savedAt={videoDraft.savedAt}
+                onRestore={() => {
+                  const saved = videoDraft.loadSavedDraft();
+                  if (saved) setEditing(saved);
+                  videoDraft.dismissBanner();
+                }}
+                onDiscard={videoDraft.clearDraft}
+              />
+            </div>
+          )}
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Tiêu đề video *">

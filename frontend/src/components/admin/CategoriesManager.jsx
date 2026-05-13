@@ -15,7 +15,7 @@ export default function CategoriesManager() {
     setLoading(true);
     try {
       const data = await categoriesApi.listAdmin();
-      setItems(data.sort((a, b) => (a.order ?? 999) - (b.order ?? 999)));
+      setItems(data.filter((c) => c.status !== 'trash').sort((a, b) => (a.order ?? 999) - (b.order ?? 999)));
     } catch (err) {
       flash('error', err.message);
     } finally {
@@ -45,10 +45,13 @@ export default function CategoriesManager() {
     try { await categoriesApi.setStatus(item.id, item.status === 'active' ? 'hidden' : 'active'); load(); }
     catch (err) { flash('error', err.message); }
   };
-  const remove = async (item) => {
-    if (!window.confirm(`Xoá danh mục "${item.name}"?`)) return;
-    try { await categoriesApi.remove(item.id); load(); }
-    catch (err) { flash('error', err.message); }
+  const moveToTrash = async (item) => {
+    if (!window.confirm(`Đưa danh mục "${item.name}" vào thùng rác?`)) return;
+    try {
+      await categoriesApi.setStatus(item.id, 'trash');
+      load();
+      flash('success', `🗑 Đã đưa "${item.name}" vào thùng rác`);
+    } catch (err) { flash('error', err.message); }
   };
 
   const handleReorder = async (newOrder) => {
@@ -131,7 +134,7 @@ export default function CategoriesManager() {
             <button onClick={() => toggleStatus(c)} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${c.status === 'hidden' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-800'}`}>
               {c.status === 'hidden' ? '👁' : '🙈'}
             </button>
-            <button onClick={() => remove(c)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700">🗑</button>
+            <button onClick={() => moveToTrash(c)} className="rounded-full bg-red-100 px-2.5 py-1 text-[11px] font-semibold text-red-700" title="Vào thùng rác">🗑</button>
           </div>
           )}
         />

@@ -17,6 +17,7 @@ const MENU = [
   { key: 'video-trash', icon: '🗑',  label: 'Video đã xoá' },
   { key: 'coll-trash',  icon: '🗑',  label: 'BST đã xoá' },
   { key: 'blog-trash',  icon: '🗑',  label: 'Blog đã xoá' },
+  { key: 'cat-trash',   icon: '🗑',  label: 'Danh mục đã xoá' },
 ];
 
 /**

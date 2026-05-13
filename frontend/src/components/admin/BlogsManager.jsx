@@ -3,6 +3,8 @@ import { blogsApi } from '../../services/resources';
 import { fetchAdminProducts } from '../../services/api';
 import BlogPreview from './previews/BlogPreview';
 import { ManagerCardListSkeleton } from '../Skeletons';
+import { useFormDraft } from '../../hooks/useFormDraft';
+import DraftBanner from './DraftBanner';
 
 const EMPTY = {
   id: null, slug: '', title: '', excerpt: '', cover: '', author: 'Admin',
@@ -36,11 +38,15 @@ export default function BlogsManager() {
     setTimeout(() => setToast({ type: '', msg: '' }), 2500);
   };
 
+  const draftKey = `blog_${editing?.id || 'new'}`;
+  const blogDraft = useFormDraft(draftKey, editing, { enabled: Boolean(editing) });
+
   const save = async () => {
     if (!editing.title?.trim() || !editing.slug?.trim()) return flash('error', 'Cần slug + tiêu đề');
     try {
       editing.id ? await blogsApi.update(editing.id, editing) : await blogsApi.save(editing);
       flash('success', '✓ Đã lưu bài viết');
+      blogDraft.clearDraft();
       setEditing(null);
       load();
     } catch (err) { flash('error', err.message); }
@@ -78,6 +84,19 @@ export default function BlogsManager() {
       {editing && (
         <div className="rounded-3xl bg-white p-5 shadow-card ring-1 ring-brand-ink-100">
           <h3 className="text-base font-extrabold">{editing.id ? '✏️ Sửa bài' : '➕ Bài mới'}</h3>
+          {blogDraft.hasSavedDraft && (
+            <div className="mt-3">
+              <DraftBanner
+                savedAt={blogDraft.savedAt}
+                onRestore={() => {
+                  const saved = blogDraft.loadSavedDraft();
+                  if (saved) setEditing(saved);
+                  blogDraft.dismissBanner();
+                }}
+                onDiscard={blogDraft.clearDraft}
+              />
+            </div>
+          )}
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Slug *">
               <input className="input-base" value={editing.slug}

@@ -18,6 +18,7 @@ import TrashManager from '../components/admin/TrashManager';
 import VideoTrash from '../components/admin/VideoTrash';
 import CollectionTrash from '../components/admin/CollectionTrash';
 import BlogTrash from '../components/admin/BlogTrash';
+import CategoryTrash from '../components/admin/CategoryTrash';
 import { detectPlatform } from '../config/affiliate';
 import { importProductApi, saveProductApi } from '../services/api';
 import { logout, getUser } from '../services/auth';
@@ -180,6 +181,7 @@ export default function Admin() {
         {tab === 'video-trash' && <VideoTrash />}
         {tab === 'coll-trash' && <CollectionTrash />}
         {tab === 'blog-trash' && <BlogTrash />}
+        {tab === 'cat-trash' && <CategoryTrash />}
 
         {tab === 'import' && (
         <>

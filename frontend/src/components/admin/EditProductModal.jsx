@@ -6,6 +6,8 @@ import { CATEGORIES } from '../../data/categories';
 import MediaListEditor from './MediaListEditor';
 import TagsInput from './TagsInput';
 import ProductPreview from './previews/ProductPreview';
+import { useFormDraft } from '../../hooks/useFormDraft';
+import DraftBanner from './DraftBanner';
 
 const BADGE_OPTIONS = [
   { key: 'hot', label: '🔥 Hot' },
@@ -27,6 +29,14 @@ export default function EditProductModal({ product, onClose, onSaved }) {
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Auto-save draft. Key theo product.id (hoặc 'new' khi tạo mới).
+  const draftKey = `product_${product?.id || 'new'}`;
+  const { hasSavedDraft, savedAt, loadSavedDraft, clearDraft, dismissBanner } = useFormDraft(
+    draftKey,
+    draft,
+    { enabled: Boolean(product) }
+  );
 
   useEffect(() => {
     if (!product) {
@@ -92,6 +102,7 @@ export default function EditProductModal({ product, onClose, onSaved }) {
         rating: Number(draft.rating) || 0,
       };
       const saved = await saveProductApi(payload);
+      clearDraft(); // xoá draft sau khi save thành công
       onSaved?.(saved);
       onClose?.();
     } catch (err) {
@@ -140,6 +151,19 @@ export default function EditProductModal({ product, onClose, onSaved }) {
 
             {/* Body */}
             <div className="max-h-[calc(92vh-120px)] space-y-4 overflow-y-auto p-4 sm:max-h-[calc(90vh-120px)] sm:p-5">
+              {/* Draft banner — khôi phục nội dung chưa lưu */}
+              {hasSavedDraft && (
+                <DraftBanner
+                  savedAt={savedAt}
+                  onRestore={() => {
+                    const saved = loadSavedDraft();
+                    if (saved) setDraft(saved);
+                    dismissBanner();
+                  }}
+                  onDiscard={() => clearDraft()}
+                />
+              )}
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Tên sản phẩm *">
                   <input

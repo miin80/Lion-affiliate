@@ -4,6 +4,8 @@ import { fetchAdminProducts } from '../../services/api';
 import CollectionPreview from './previews/CollectionPreview';
 import DragSortable, { DragHandle } from './DragSortable';
 import { ManagerCardListSkeleton } from '../Skeletons';
+import { useFormDraft } from '../../hooks/useFormDraft';
+import DraftBanner from './DraftBanner';
 
 const EMPTY = {
   id: null, slug: '', title: '', emoji: '✨', cover: '', desc: '',
@@ -36,11 +38,15 @@ export default function CollectionsManager() {
     setTimeout(() => setToast({ type: '', msg: '' }), 2500);
   };
 
+  const draftKey = `collection_${editing?.id || 'new'}`;
+  const collDraft = useFormDraft(draftKey, editing, { enabled: Boolean(editing) });
+
   const save = async () => {
     if (!editing.title?.trim() || !editing.slug?.trim()) return flash('error', 'Cần slug + tiêu đề');
     try {
       editing.id ? await collectionsApi.update(editing.id, editing) : await collectionsApi.save(editing);
       flash('success', '✓ Đã lưu');
+      collDraft.clearDraft();
       setEditing(null);
       load();
     } catch (err) { flash('error', err.message); }
@@ -89,6 +95,19 @@ export default function CollectionsManager() {
       {editing && (
         <div className="rounded-3xl bg-white p-5 shadow-card ring-1 ring-brand-ink-100">
           <h3 className="text-base font-extrabold">{editing.id ? '✏️ Sửa' : '➕ Thêm'} bộ sưu tập</h3>
+          {collDraft.hasSavedDraft && (
+            <div className="mt-3">
+              <DraftBanner
+                savedAt={collDraft.savedAt}
+                onRestore={() => {
+                  const saved = collDraft.loadSavedDraft();
+                  if (saved) setEditing(saved);
+                  collDraft.dismissBanner();
+                }}
+                onDiscard={collDraft.clearDraft}
+              />
+            </div>
+          )}
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             <Field label="Slug *">
               <input className="input-base" value={editing.slug}
