@@ -8,18 +8,34 @@ import StickyCTA from './components/StickyCTA';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import TrackingScripts from './components/TrackingScripts';
+import { isChunkLoadError, reloadOnceForChunkError } from './utils/chunkReload';
+
+// Wrap lazy() để auto-reload khi chunk cũ (stale sau deploy) bị 404.
+// Trả promise never-resolving lúc đang reload → Suspense giữ fallback UI mượt.
+function lazyWithRetry(loader) {
+  return lazy(async () => {
+    try {
+      return await loader();
+    } catch (err) {
+      if (isChunkLoadError(err) && reloadOnceForChunkError()) {
+        return new Promise(() => {}); // hang cho tới khi page reload
+      }
+      throw err;
+    }
+  });
+}
 
 // Code-splitting để tải nhanh hơn
-const Home = lazy(() => import('./pages/Home'));
-const ProductsPage = lazy(() => import('./pages/ProductsPage'));
-const ProductDetail = lazy(() => import('./pages/ProductDetail'));
-const Collection = lazy(() => import('./pages/Collection'));
-const Blog = lazy(() => import('./pages/Blog'));
-const BlogPost = lazy(() => import('./pages/BlogPost'));
-const Admin = lazy(() => import('./pages/Admin'));
-const Login = lazy(() => import('./pages/Login'));
-const NotFound = lazy(() => import('./pages/NotFound'));
-const LegalPage = lazy(() => import('./pages/LegalPage'));
+const Home = lazyWithRetry(() => import('./pages/Home'));
+const ProductsPage = lazyWithRetry(() => import('./pages/ProductsPage'));
+const ProductDetail = lazyWithRetry(() => import('./pages/ProductDetail'));
+const Collection = lazyWithRetry(() => import('./pages/Collection'));
+const Blog = lazyWithRetry(() => import('./pages/Blog'));
+const BlogPost = lazyWithRetry(() => import('./pages/BlogPost'));
+const Admin = lazyWithRetry(() => import('./pages/Admin'));
+const Login = lazyWithRetry(() => import('./pages/Login'));
+const NotFound = lazyWithRetry(() => import('./pages/NotFound'));
+const LegalPage = lazyWithRetry(() => import('./pages/LegalPage'));
 
 function Fallback() {
   return (

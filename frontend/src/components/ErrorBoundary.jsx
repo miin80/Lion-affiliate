@@ -1,8 +1,13 @@
 import { Component } from 'react';
+import { isChunkLoadError, reloadOnceForChunkError } from '../utils/chunkReload';
 
 /**
  * ErrorBoundary — bắt mọi error từ children → render fallback UI thay vì trắng trang.
  * Production safety: khi 1 component crash, các phần khác vẫn hoạt động.
+ *
+ * Safety net cho chunk-load error (stale sau deploy): nếu error là chunk load,
+ * tự reload trang 1 lần. lazyWithRetry trong App.jsx đã handle case này, đây là
+ * lớp dự phòng nếu lỗi đến từ render path khác.
  */
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -15,6 +20,10 @@ export default class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
+    if (isChunkLoadError(error)) {
+      // Stale chunk sau deploy → reload 1 lần. Có sessionStorage flag chống loop.
+      if (reloadOnceForChunkError()) return;
+    }
     // eslint-disable-next-line no-console
     console.error('[ErrorBoundary]', error, errorInfo);
   }
