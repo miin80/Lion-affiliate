@@ -9,7 +9,6 @@ import { logout, getUser } from '../../services/auth';
 const MENU = [
   { to: '/admin/dashboard',          icon: '📊', label: 'Dashboard' },
   { to: '/admin/import-san-pham',    icon: '📥', label: 'Import sản phẩm' },
-  { to: '/admin/bookmarklet',        icon: '📌', label: 'Auto-import (script)' },
   { to: '/admin/san-pham',           icon: '🛍',  label: 'Sản phẩm' },
   { to: '/admin/video-review',       icon: '🎬', label: 'Video review' },
   { to: '/admin/bo-suu-tap',         icon: '📚', label: 'Bộ sưu tập' },
