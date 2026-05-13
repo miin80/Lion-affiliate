@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Seo from '../components/Seo';
 import LazyImage from '../components/LazyImage';
 import PlatformBadge from '../components/PlatformBadge';
@@ -14,9 +14,22 @@ import { trackClick } from '../services/analytics';
 
 export default function ProductDetail() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { products, loading } = useProducts();
   const product = products.find((p) => p.slug === slug) || getProductBySlug(slug);
   const [activeImg, setActiveImg] = useState(0);
+
+  // Reset gallery thumbnail index khi sang product khác (Route component không
+  // unmount, useState giữ giá trị cũ → có thể trỏ index ngoài array images).
+  useEffect(() => {
+    setActiveImg(0);
+  }, [slug]);
+
+  // Click related card → điều hướng tới detail page mới (React Router, không
+  // reload). ScrollToTop component đã xử lý scroll lên đầu khi pathname đổi.
+  const handleRelatedOpen = (p) => {
+    if (p?.slug) navigate(`/product/${p.slug}`);
+  };
 
   if (loading && !product) {
     return <div className="container-page py-20 text-center text-brand-ink-500">Đang tải...</div>;
@@ -202,7 +215,7 @@ export default function ProductDetail() {
           <h2 className="mb-4 text-xl font-extrabold">Có thể bạn cũng thích</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
             {related.map((p, i) => (
-              <ProductCard key={p.id} product={p} index={i} />
+              <ProductCard key={p.id} product={p} index={i} onOpen={handleRelatedOpen} />
             ))}
           </div>
         </section>

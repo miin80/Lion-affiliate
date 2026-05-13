@@ -2,12 +2,19 @@ import { useRef, useState } from 'react';
 import { CLOUDINARY_ENABLED, uploadToCloudinary } from '../../services/cloudinary';
 
 /**
- * CloudinaryUploader — drag-drop + click upload ảnh.
+ * CloudinaryUploader — drag-drop + click upload ảnh/video.
  *  - Single hoặc multi.
+ *  - accept: MIME filter ('image/*', 'video/*', hoặc 'image/*,video/*').
  *  - Nếu Cloudinary chưa cấu hình → ẩn nút + hiện hint.
  *  - onUpload(urls): callback sau khi upload thành công.
  */
-export default function CloudinaryUploader({ onUpload, multiple = true, label = '📤 Upload từ máy' }) {
+export default function CloudinaryUploader({
+  onUpload,
+  multiple = true,
+  accept = 'image/*',
+  label = '📤 Upload từ máy',
+  hint = 'Kéo thả file vào đây hoặc click để chọn',
+}) {
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({});
@@ -86,9 +93,7 @@ export default function CloudinaryUploader({ onUpload, multiple = true, label = 
           <>
             <div className="text-2xl">📤</div>
             <div className="mt-1 font-bold">{label}</div>
-            <div className="text-[10px] text-brand-ink-500">
-              Kéo thả file vào đây hoặc click để chọn
-            </div>
+            <div className="text-[10px] text-brand-ink-500">{hint}</div>
           </>
         )}
       </div>
@@ -96,7 +101,7 @@ export default function CloudinaryUploader({ onUpload, multiple = true, label = 
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={accept}
         multiple={multiple}
         className="hidden"
         onChange={(e) => {
