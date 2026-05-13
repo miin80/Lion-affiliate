@@ -1,17 +1,19 @@
-// Lưu cài đặt website (profile, social, buttons, hero) vào siteSettings.json.
+// Site settings — dual impl: Supabase singleton row hoặc JSON file.
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { supabase, USE_SUPABASE } from './supabase.js';
 import { DEFAULT_AVATAR_DATA_URL } from './defaultAvatar.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 const FILE = path.join(DATA_DIR, 'siteSettings.json');
+const TABLE = 'site_settings';
+const SINGLETON_ID = 'singleton';
 
 let memCache = null;
 let writeQueue = Promise.resolve();
 
-// Default mặc định nếu file chưa tồn tại — match data hiện tại của site.
 export const DEFAULT_SETTINGS = {
   profile: {
     name: 'Minh Quang Reviews',
@@ -20,9 +22,9 @@ export const DEFAULT_SETTINGS = {
       'Reviewer đời sống · Mỗi tuần 1 sản phẩm đáng mua. Tap ⬇️ để xem deal tốt nhất.',
     avatar: DEFAULT_AVATAR_DATA_URL,
     stats: {
-      followers: '128K',
-      reviewed: '320+',
-      happy: '98%',
+      followers: '',
+      reviewed: '',
+      happy: '',
     },
   },
   socials: {
@@ -33,18 +35,9 @@ export const DEFAULT_SETTINGS = {
     shopee: '',
   },
   buttons: {
-    follow: {
-      text: '➕ Theo dõi mình',
-      url: 'https://www.facebook.com/Lion9826/',
-    },
-    dealHot: {
-      text: '🔥 Xem deal HOT hôm nay',
-      url: '',
-    },
-    videoReview: {
-      text: '🎬 Xem video review',
-      url: '#video-reviews',
-    },
+    follow: { text: '➕ Theo dõi mình', url: 'https://www.facebook.com/Lion9826/' },
+    dealHot: { text: '🔥 Xem deal HOT hôm nay', url: '' },
+    videoReview: { text: '🎬 Xem video review', url: '#video-reviews' },
   },
   hero: {
     badge: '🔥 Top recommend 2026',
@@ -56,7 +49,6 @@ export const DEFAULT_SETTINGS = {
   disclosure:
     'Một số liên kết trên website là liên kết tiếp thị. Khi bạn mua hàng qua các liên kết này, mình có thể nhận được một khoản hoa hồng nhỏ — bạn KHÔNG phải trả thêm bất kỳ chi phí nào.',
   email: '',
-  // Bật/tắt section hiển thị trên trang chủ
   sections: {
     hero: true,
     products: true,
@@ -67,7 +59,8 @@ export const DEFAULT_SETTINGS = {
   },
 };
 
-async function ensureFile() {
+// ============ JSON file impl ============
+async function jsonEnsureFile() {
   try {
     await fs.access(FILE);
   } catch {
@@ -75,15 +68,12 @@ async function ensureFile() {
     await fs.writeFile(FILE, JSON.stringify(DEFAULT_SETTINGS, null, 2), 'utf8');
   }
 }
-
-export async function readSettings() {
+async function jsonRead() {
   if (memCache) return memCache;
-  await ensureFile();
+  await jsonEnsureFile();
   const txt = await fs.readFile(FILE, 'utf8');
   try {
     const stored = JSON.parse(txt);
-    // Nếu data đã lưu KHÔNG có brand mới (Minh Quang) → file là legacy "Mira" data.
-    // Reset về DEFAULT_SETTINGS để pickup brand mới.
     const isLegacy =
       stored?.profile?.name === 'Mira Reviews' ||
       (stored?.email || '').includes('mira-reviews') ||
@@ -101,7 +91,32 @@ export async function readSettings() {
   return memCache;
 }
 
-/** Deep merge — chấp nhận patch lồng nhau (profile.stats.followers...). */
+// ============ Supabase impl ============
+async function supaRead() {
+  const { data, error } = await supabase
+    .from(TABLE)
+    .select('data')
+    .eq('id', SINGLETON_ID)
+    .maybeSingle();
+  if (error) throw new Error(`[supabase ${TABLE}] ${error.message}`);
+  if (!data) {
+    // Chưa có row → tạo từ DEFAULT
+    await supaWrite(DEFAULT_SETTINGS);
+    return DEFAULT_SETTINGS;
+  }
+  return { ...DEFAULT_SETTINGS, ...(data.data || {}) };
+}
+async function supaWrite(obj) {
+  const { error } = await supabase
+    .from(TABLE)
+    .upsert(
+      { id: SINGLETON_ID, data: obj, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    );
+  if (error) throw new Error(`[supabase ${TABLE}] ${error.message}`);
+  return obj;
+}
+
 function deepMerge(base, patch) {
   if (!patch || typeof patch !== 'object') return base;
   const out = Array.isArray(base) ? [...base] : { ...base };
@@ -115,9 +130,21 @@ function deepMerge(base, patch) {
   return out;
 }
 
+// ============ Public API ============
+export async function readSettings() {
+  if (USE_SUPABASE) return supaRead();
+  return jsonRead();
+}
+
 export async function writeSettings(patch) {
   const current = await readSettings();
   const next = deepMerge(current, patch);
+
+  if (USE_SUPABASE) {
+    await supaWrite(next);
+    return next;
+  }
+
   memCache = next;
   writeQueue = writeQueue.then(() =>
     fs.writeFile(FILE, JSON.stringify(next, null, 2), 'utf8')

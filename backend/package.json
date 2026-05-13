@@ -5,9 +5,11 @@
   "description": "Scraper backend for KOL affiliate site (Shopee, TikTok Shop, Lazada, Tiki, generic OG).",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "migrate:supabase": "node scripts/migrate-to-supabase.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
     "cors": "^2.8.5",

@@ -1,17 +1,22 @@
-// Lưu trữ sản phẩm dạng JSON file (demo). Dễ migrate sang Supabase/Firebase sau.
-// File data: backend/data/products.json
+// Products store — dual impl: Supabase (production) hoặc JSON file (dev fallback).
+// Tự detect qua USE_SUPABASE flag. API public function giữ NGUYÊN signature
+// để routes/products.js không phải sửa.
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { supabase, USE_SUPABASE } from './supabase.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 const FILE = path.join(DATA_DIR, 'products.json');
 
+// ============================================================================
+// JSON FILE IMPL (fallback khi USE_SUPABASE=false)
+// ============================================================================
 let memCache = null;
 let writeQueue = Promise.resolve();
 
-async function ensureFile() {
+async function jsonEnsureFile() {
   try {
     await fs.access(FILE);
   } catch {
@@ -20,9 +25,9 @@ async function ensureFile() {
   }
 }
 
-async function read() {
+async function jsonRead() {
   if (memCache) return memCache;
-  await ensureFile();
+  await jsonEnsureFile();
   const txt = await fs.readFile(FILE, 'utf8');
   let arr;
   try {
@@ -30,43 +35,194 @@ async function read() {
   } catch {
     arr = [];
   }
-  // Backward-compat: sản phẩm cũ chưa có `status` mặc định là 'active'.
   memCache = arr.map((p) => ({ status: 'active', ...p }));
   return memCache;
 }
 
-async function write(arr) {
+async function jsonWrite(arr) {
   memCache = arr;
-  // Serialise writes
   writeQueue = writeQueue.then(() =>
     fs.writeFile(FILE, JSON.stringify(arr, null, 2), 'utf8')
   );
   return writeQueue;
 }
 
-/** Tất cả sản phẩm (dùng cho admin). */
-export async function listProducts() {
-  return read();
+// ============================================================================
+// SUPABASE IMPL
+// Row schema: { id, data (jsonb full product), status, slug, category, source,
+//               created_at, updated_at, trashed_at }
+// ============================================================================
+function rowToProduct(row) {
+  if (!row) return null;
+  // data jsonb chứa full object; cột top-level (status/slug/...) là copy để query.
+  return {
+    ...(row.data || {}),
+    id: row.id,
+    status: row.status,
+    slug: row.slug || row.data?.slug,
+    category: row.category || row.data?.category,
+    source: row.source || row.data?.source || 'manual',
+    createdAt: row.created_at || row.data?.createdAt,
+    updatedAt: row.updated_at || row.data?.updatedAt,
+    trashedAt: row.trashed_at || row.data?.trashedAt || null,
+  };
 }
 
-/** Chỉ sản phẩm có status = active (dùng cho public website). */
+function productToRow(p) {
+  const data = { ...p };
+  // Loại bỏ các field trùng top-level để không nhân đôi dữ liệu trong jsonb
+  // (nhưng vẫn keep cho backward compat khi đọc lại — không quan trọng)
+  return {
+    id: p.id,
+    data,
+    status: p.status || 'active',
+    slug: p.slug || null,
+    category: p.category || null,
+    source: p.source || 'manual',
+    updated_at: new Date().toISOString(),
+    trashed_at: p.status === 'trash' ? new Date().toISOString() : null,
+  };
+}
+
+async function supaListAll() {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`[supabase products] ${error.message}`);
+  return (data || []).map(rowToProduct);
+}
+
+async function supaListActive() {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(`[supabase products] ${error.message}`);
+  return (data || []).map(rowToProduct);
+}
+
+async function supaListTrash() {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('status', 'trash');
+  if (error) throw new Error(`[supabase products] ${error.message}`);
+  return (data || []).map(rowToProduct);
+}
+
+async function supaGet(id) {
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw new Error(`[supabase products] ${error.message}`);
+  return data ? rowToProduct(data) : null;
+}
+
+async function supaUpsert(product) {
+  const row = productToRow(product);
+  const { data, error } = await supabase
+    .from('products')
+    .upsert(row, { onConflict: 'id' })
+    .select()
+    .single();
+  if (error) throw new Error(`[supabase products] ${error.message}`);
+  return rowToProduct(data);
+}
+
+async function supaDelete(id) {
+  const { error } = await supabase.from('products').delete().eq('id', id);
+  if (error) throw new Error(`[supabase products] ${error.message}`);
+  return true;
+}
+
+async function supaSetStatus(id, status) {
+  if (!['active', 'hidden', 'trash'].includes(status)) {
+    throw new Error('Status không hợp lệ. Chỉ chấp nhận: active | hidden | trash.');
+  }
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('products')
+    .update({
+      status,
+      updated_at: now,
+      trashed_at: status === 'trash' ? now : null,
+    })
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+  if (error) throw new Error(`[supabase products] ${error.message}`);
+  return data ? rowToProduct(data) : null;
+}
+
+async function supaBulkSetStatus(ids, status) {
+  if (!Array.isArray(ids) || !ids.length) return { updated: 0 };
+  if (!['active', 'hidden', 'trash'].includes(status)) {
+    throw new Error('Status không hợp lệ.');
+  }
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('products')
+    .update({
+      status,
+      updated_at: now,
+      trashed_at: status === 'trash' ? now : null,
+    })
+    .in('id', ids)
+    .select('id');
+  if (error) throw new Error(`[supabase products] ${error.message}`);
+  return { updated: data?.length || 0 };
+}
+
+// ============================================================================
+// PUBLIC API — giữ nguyên signature cũ
+// ============================================================================
+function slugify(text) {
+  return String(text || 'san-pham')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 80) || 'san-pham';
+}
+
+/** Tất cả sản phẩm (dùng cho admin). */
+export async function listProducts() {
+  if (USE_SUPABASE) return supaListAll();
+  return jsonRead();
+}
+
+/** Chỉ sản phẩm status=active (public). */
 export async function listActiveProducts() {
-  const all = await read();
+  if (USE_SUPABASE) return supaListActive();
+  const all = await jsonRead();
   return all.filter((p) => (p.status || 'active') === 'active');
 }
 
 /** Sản phẩm trash. */
 export async function listTrashProducts() {
-  const all = await read();
+  if (USE_SUPABASE) return supaListTrash();
+  const all = await jsonRead();
   return all.filter((p) => p.status === 'trash');
 }
 
-/** Đổi status sản phẩm. status: 'active' | 'hidden' | 'trash'. */
+export async function getProduct(id) {
+  if (USE_SUPABASE) return supaGet(id);
+  const all = await jsonRead();
+  return all.find((p) => p.id === id) || null;
+}
+
 export async function setStatus(id, status) {
+  if (USE_SUPABASE) return supaSetStatus(id, status);
+  // JSON fallback
   if (!['active', 'hidden', 'trash'].includes(status)) {
     throw new Error('Status không hợp lệ. Chỉ chấp nhận: active | hidden | trash.');
   }
-  const all = await read();
+  const all = await jsonRead();
   const idx = all.findIndex((p) => p.id === id);
   if (idx < 0) return null;
   const now = new Date().toISOString();
@@ -74,20 +230,19 @@ export async function setStatus(id, status) {
     ...all[idx],
     status,
     updatedAt: now,
-    // Lưu thời điểm chuyển vào trash để hiển thị "ngày xóa"
     trashedAt: status === 'trash' ? now : null,
   };
-  await write(all);
+  await jsonWrite(all);
   return all[idx];
 }
 
-/** Bulk status update — đổi status của nhiều sản phẩm cùng lúc. */
 export async function bulkSetStatus(ids, status) {
+  if (USE_SUPABASE) return supaBulkSetStatus(ids, status);
   if (!Array.isArray(ids) || !ids.length) return { updated: 0 };
   if (!['active', 'hidden', 'trash'].includes(status)) {
     throw new Error('Status không hợp lệ.');
   }
-  const all = await read();
+  const all = await jsonRead();
   const now = new Date().toISOString();
   let count = 0;
   ids.forEach((id) => {
@@ -102,29 +257,33 @@ export async function bulkSetStatus(ids, status) {
       count++;
     }
   });
-  await write(all);
+  await jsonWrite(all);
   return { updated: count };
 }
 
-export async function getProduct(id) {
-  const all = await read();
-  return all.find((p) => p.id === id) || null;
-}
-
 export async function saveProduct(product) {
-  const all = await read();
   const now = new Date().toISOString();
   const id = product.id || `p_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-  const slug =
-    product.slug ||
-    (product.title || 'san-pham')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '')
-      .slice(0, 80) || 'san-pham';
+  const slug = product.slug || slugify(product.title || id);
 
+  if (USE_SUPABASE) {
+    // Lấy bản cũ (nếu có) để giữ createdAt + source
+    const existing = await supaGet(id);
+    const merged = {
+      ...(existing || {}),
+      ...product,
+      id,
+      slug: existing?.slug || slug,
+      status: product.status || existing?.status || 'active',
+      source: existing?.source || product.source || 'manual',
+      updatedAt: now,
+      createdAt: existing?.createdAt || now,
+    };
+    return supaUpsert(merged);
+  }
+
+  // JSON fallback
+  const all = await jsonRead();
   const idx = all.findIndex((p) => p.id === id);
   const next = {
     ...(idx >= 0 ? all[idx] : {}),
@@ -132,20 +291,20 @@ export async function saveProduct(product) {
     id,
     slug: idx >= 0 ? all[idx].slug : slug,
     status: product.status || (idx >= 0 ? all[idx].status : 'active') || 'active',
-    // source: 'manual' | 'sheet'. Khi update, GIỮ source ban đầu (không bị overwrite).
     source: idx >= 0 ? all[idx].source || 'manual' : (product.source || 'manual'),
     updatedAt: now,
     createdAt: idx >= 0 ? all[idx].createdAt : now,
   };
   if (idx >= 0) all[idx] = next;
   else all.unshift(next);
-  await write(all);
+  await jsonWrite(all);
   return next;
 }
 
 export async function deleteProduct(id) {
-  const all = await read();
+  if (USE_SUPABASE) return supaDelete(id);
+  const all = await jsonRead();
   const next = all.filter((p) => p.id !== id);
-  await write(next);
+  await jsonWrite(next);
   return all.length !== next.length;
 }

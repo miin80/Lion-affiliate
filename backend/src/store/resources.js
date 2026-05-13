@@ -1,7 +1,7 @@
 // Khởi tạo store cho 4 resources: videos, categories, collections, blogs.
+// Mỗi store hỗ trợ dual impl: Supabase (production) hoặc JSON file (dev fallback).
 import { createStore } from './genericStore.js';
 
-// Default seed — match mock data ban đầu (sẽ tự ghi khi file json chưa tồn tại).
 const DEFAULT_CATEGORIES = [
   { id: 'cat_all',       slug: 'all',       name: 'Tất cả',    icon: '✨', order: 0, status: 'active' },
   { id: 'cat_deal',      slug: 'deal',      name: 'Deal hot',  icon: '🔥', order: 1, status: 'active' },
@@ -15,20 +15,24 @@ const DEFAULT_CATEGORIES = [
 
 export const videosStore = createStore({
   filename: 'videos.json',
+  table: 'videos',
   defaults: [],
 });
 
 export const categoriesStore = createStore({
   filename: 'categories.json',
+  table: 'categories',
   defaults: DEFAULT_CATEGORIES,
 });
 
 export const collectionsStore = createStore({
   filename: 'collections.json',
+  table: 'collections',
   defaults: [],
 });
 
 export const blogsStore = createStore({
   filename: 'blogs.json',
+  table: 'blogs',
   defaults: [],
 });
