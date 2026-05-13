@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CloseIcon } from '../icons';
 import { saveProductApi } from '../../services/api';
-import { CATEGORIES } from '../../data/categories';
 import MediaListEditor from './MediaListEditor';
 import TagsInput from './TagsInput';
 import ProductPreview from './previews/ProductPreview';
 import { useFormDraft } from '../../hooks/useFormDraft';
 import DraftBanner from './DraftBanner';
 import { parseShopeePriceText } from '../../utils/parseShopeePrice';
+import { useAdminCategories } from '../../hooks/useAdminCategories';
 
 const BADGE_OPTIONS = [
   { key: 'hot', label: '🔥 Hot' },
@@ -30,6 +30,8 @@ export default function EditProductModal({ product, onClose, onSaved }) {
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Categories từ API (admin endpoint), tự filter 'all' / 'deal'.
+  const { items: categories } = useAdminCategories();
 
   // Auto-save draft. Key theo product.id (hoặc 'new' khi tạo mới).
   const draftKey = `product_${product?.id || 'new'}`;
@@ -193,12 +195,19 @@ export default function EditProductModal({ product, onClose, onSaved }) {
                 <Field label="Danh mục">
                   <select
                     className="input-base"
-                    value={draft.category || 'gia-dung'}
+                    value={draft.category || ''}
                     onChange={(e) => update({ category: e.target.value })}
                   >
-                    {CATEGORIES.filter((c) => c.slug !== 'all' && c.slug !== 'deal').map((c) => (
+                    {/* Khi categories chưa load, vẫn cho user thấy slug hiện tại để khỏi mất */}
+                    {categories.length === 0 && draft.category && (
+                      <option value={draft.category}>{draft.category}</option>
+                    )}
+                    {categories.length === 0 && !draft.category && (
+                      <option value="">— Đang tải danh mục —</option>
+                    )}
+                    {categories.map((c) => (
                       <option key={c.slug} value={c.slug}>
-                        {c.icon} {c.name}
+                        {c.icon || '📦'} {c.name}
                       </option>
                     ))}
                   </select>

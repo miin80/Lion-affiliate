@@ -13,42 +13,47 @@
  * - `paramKey`: query param dùng để gắn tracking (nếu có).
  * - `wrap(url)`: hàm tuỳ chỉnh để bọc URL gốc bằng deeplink (nếu nền tảng yêu cầu).
  */
+// Default affiliateId = '' (rỗng) → wrap() trả URL gốc, KHÔNG chèn placeholder.
+// Đặt affiliateId thật ở đây (hoặc qua VITE_AFFILIATE_* env) nếu muốn auto-wrap
+// sourceUrl thành affiliate khi product không có affiliateUrl riêng.
+// Hiện tại flow chính là admin nhập affiliateUrl trực tiếp → fallback wrap chỉ
+// chạy khi product có sourceUrl mà không có affiliateUrl.
 export const PLATFORMS = {
   shopee: {
     key: 'shopee',
     name: 'Shopee',
     color: 'bg-orange-500 text-white',
     match: /shopee\.(vn|com|co|sg|com\.my|co\.th|co\.id|ph)/i,
-    affiliateId: 'YOUR_SHOPEE_AFF_ID',
+    affiliateId: '',
     paramKey: 'af_sub_siteid',
-    wrap: (url, cfg) => appendQuery(url, { [cfg.paramKey]: cfg.affiliateId }),
+    wrap: (url, cfg) => (cfg.affiliateId ? appendQuery(url, { [cfg.paramKey]: cfg.affiliateId }) : url),
   },
   tiktok: {
     key: 'tiktok',
     name: 'TikTok Shop',
     color: 'bg-black text-white',
     match: /(tiktok\.com|shop\.tiktok\.com|vt\.tiktok\.com)/i,
-    affiliateId: 'YOUR_TIKTOK_AFF_ID',
+    affiliateId: '',
     paramKey: 'aff_id',
-    wrap: (url, cfg) => appendQuery(url, { [cfg.paramKey]: cfg.affiliateId }),
+    wrap: (url, cfg) => (cfg.affiliateId ? appendQuery(url, { [cfg.paramKey]: cfg.affiliateId }) : url),
   },
   lazada: {
     key: 'lazada',
     name: 'Lazada',
     color: 'bg-blue-600 text-white',
     match: /lazada\.(vn|com|com\.my|co\.th|co\.id|com\.ph|sg)/i,
-    affiliateId: 'YOUR_LAZADA_AFF_ID',
+    affiliateId: '',
     paramKey: 'sub_aff_id',
-    wrap: (url, cfg) => appendQuery(url, { [cfg.paramKey]: cfg.affiliateId }),
+    wrap: (url, cfg) => (cfg.affiliateId ? appendQuery(url, { [cfg.paramKey]: cfg.affiliateId }) : url),
   },
   tiki: {
     key: 'tiki',
     name: 'Tiki',
     color: 'bg-sky-600 text-white',
     match: /tiki\.vn/i,
-    affiliateId: 'YOUR_TIKI_AFF_ID',
+    affiliateId: '',
     paramKey: 'aff',
-    wrap: (url, cfg) => appendQuery(url, { [cfg.paramKey]: cfg.affiliateId }),
+    wrap: (url, cfg) => (cfg.affiliateId ? appendQuery(url, { [cfg.paramKey]: cfg.affiliateId }) : url),
   },
   other: {
     key: 'other',

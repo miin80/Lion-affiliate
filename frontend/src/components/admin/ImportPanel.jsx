@@ -7,7 +7,7 @@ import TagsInput from './TagsInput';
 import { detectPlatform } from '../../config/affiliate';
 import { importProductApi, saveProductApi } from '../../services/api';
 import { formatVND } from '../../utils/format';
-import { CATEGORIES } from '../../data/categories';
+import { useAdminCategories } from '../../hooks/useAdminCategories';
 import { parseShopeePriceText } from '../../utils/parseShopeePrice';
 
 const EMPTY = {
@@ -50,6 +50,8 @@ export default function ImportPanel() {
   const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  // Categories lấy từ API admin endpoint, tự filter 'all' / 'deal'.
+  const { items: categories } = useAdminCategories();
 
   // Bookmarklet auto-fill: nếu có ?prefill=<base64-json>, decode + setDraft.
   useEffect(() => {
@@ -331,8 +333,15 @@ export default function ImportPanel() {
                 onChange={(e) => update({ category: e.target.value })}
                 className="input-base"
               >
-                {CATEGORIES.filter((c) => c.slug !== 'all' && c.slug !== 'deal').map((c) => (
-                  <option key={c.slug} value={c.slug}>{c.icon} {c.name}</option>
+                {/* Bảo toàn slug hiện tại khi categories chưa load để không mất giá trị */}
+                {categories.length === 0 && draft.category && (
+                  <option value={draft.category}>{draft.category}</option>
+                )}
+                {categories.length === 0 && !draft.category && (
+                  <option value="">— Đang tải danh mục —</option>
+                )}
+                {categories.map((c) => (
+                  <option key={c.slug} value={c.slug}>{c.icon || '📦'} {c.name}</option>
                 ))}
               </select>
             </Field>

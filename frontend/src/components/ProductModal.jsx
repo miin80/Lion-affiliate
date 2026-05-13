@@ -17,6 +17,8 @@ export default function ProductModal({ product, onClose }) {
   const [activeImg, setActiveImg] = useState(0);
   // Hỗ trợ schema cũ (single video) và mới (videos array)
   const firstVideo = product?.video || product?.videos?.[0] || null;
+  // Guard: product import từ Sheet có thể thiếu images. LazyImage có placeholder fallback.
+  const images = Array.isArray(product?.images) ? product.images : [];
 
   useEffect(() => {
     if (!product) return;
@@ -74,7 +76,7 @@ export default function ProductModal({ product, onClose }) {
                       />
                     ) : (
                       <LazyImage
-                        src={product.images[activeImg]}
+                        src={images[activeImg] || images[0]}
                         alt={product.title}
                         aspect="aspect-square"
                         eager
@@ -84,9 +86,9 @@ export default function ProductModal({ product, onClose }) {
                       <PlatformBadge platform={product.platform} />
                     </div>
                   </div>
-                  {product.images.length > 1 && !firstVideo && (
+                  {images.length > 1 && !firstVideo && (
                     <div className="flex gap-2 overflow-x-auto p-3 scrollbar-hide">
-                      {product.images.map((src, i) => (
+                      {images.map((src, i) => (
                         <button
                           key={src + i}
                           onClick={() => setActiveImg(i)}

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import PlatformBadge from '../PlatformBadge';
-import { CATEGORIES } from '../../data/categories';
 import {
   fetchAdminProducts,
   updateProductStatusApi,
@@ -11,6 +10,7 @@ import { formatVND, formatDate } from '../../utils/format';
 import EditProductModal from './EditProductModal';
 import { ManagerCardListSkeleton } from '../Skeletons';
 import { useSafeTimeout } from '../../hooks/useSafeTimeout';
+import { useAdminCategories } from '../../hooks/useAdminCategories';
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'Tất cả (không tính trash)' },
@@ -32,10 +32,6 @@ const SORT_OPTIONS = [
   { key: 'hot', label: '🔥 Hot (badge)' },
 ];
 
-const CATEGORY_NAME = Object.fromEntries(
-  CATEGORIES.map((c) => [c.slug, c.name])
-);
-
 export default function ProductManager() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +45,13 @@ export default function ProductManager() {
   const [editing, setEditing] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+
+  // Lấy categories từ API (admin endpoint). Dùng để show category name từ slug.
+  const { items: categories } = useAdminCategories();
+  const categoryName = useMemo(
+    () => Object.fromEntries(categories.map((c) => [c.slug, c.name])),
+    [categories]
+  );
 
   const load = async () => {
     setLoading(true);
@@ -376,6 +379,7 @@ export default function ProductManager() {
               <ProductRow
                 key={p.id}
                 product={p}
+                categoryLabel={categoryName[p.category] || p.category || '—'}
                 busy={busyId === p.id}
                 selected={selectedIds.has(p.id)}
                 onSelectToggle={() => toggleSelect(p.id)}
@@ -399,7 +403,7 @@ export default function ProductManager() {
   );
 }
 
-function ProductRow({ product, busy, selected, onSelectToggle, onToggleStatus, onDelete, onEdit, onCopiedLink }) {
+function ProductRow({ product, categoryLabel, busy, selected, onSelectToggle, onToggleStatus, onDelete, onEdit, onCopiedLink }) {
   const isHidden = product.status === 'hidden';
   void product.source;
   return (
@@ -448,7 +452,7 @@ function ProductRow({ product, busy, selected, onSelectToggle, onToggleStatus, o
         {/* Title + meta */}
         <h3 className="line-clamp-2 font-semibold leading-snug">{product.title}</h3>
         <div className="flex flex-wrap items-center gap-2 text-[10px] text-brand-ink-500">
-          <span>{CATEGORY_NAME[product.category] || product.category || '—'}</span>
+          <span>{categoryLabel}</span>
           {product.createdAt && (
             <>
               <span>·</span>

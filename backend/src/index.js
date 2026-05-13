@@ -40,7 +40,16 @@ import {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+// CORS fail-fast: production BẮT BUỘC set CORS_ORIGIN cụ thể, không cho wildcard.
+// Lý do: '*' cho phép mọi origin gọi API → rủi ro nếu token admin bị lộ qua XSS.
+const RAW_CORS = process.env.CORS_ORIGIN;
+if (process.env.NODE_ENV === 'production' && (!RAW_CORS || RAW_CORS.trim() === '*')) {
+  console.error('❌ FATAL: CORS_ORIGIN chưa set hoặc đang là "*" trong production.');
+  console.error('   Render Dashboard → Environment → set CORS_ORIGIN=https://yourdomain.com');
+  console.error('   (Có thể đặt nhiều origin phân tách bằng dấu phẩy.)');
+  process.exit(1);
+}
+const CORS_ORIGIN = RAW_CORS || '*';
 
 // Parse origins từ env (strip slash, whitespace).
 const allowedList =
@@ -107,7 +116,8 @@ app.use('/api/products', publicLimiter); // áp lên /api/products + /api/produc
 app.use('/api/site-settings', publicLimiter);
 app.use('/api/analytics/click', publicLimiter);
 app.use('/api/categories/active-with-products', publicLimiter);
-// Note: admin routes (bulk save, scrape, settings PUT) chưa cần limit chặt vì sau requireAuth.
+// Admin endpoints nặng (scrape Puppeteer, sheet-sync loop, backup import) — limit
+// chặt để chống abuse khi token bị lộ. Mount inline ở route POST bên dưới.
 
 // ============ CACHE-CONTROL cho public GET routes ============
 // 60s cache: frontend load home/products lặp lại không spam backend → giảm tải +
@@ -137,8 +147,11 @@ app.get('/api/products', listRoute);
 app.get('/api/site-settings', getSettingsRoute);
 
 // ============ ADMIN (yêu cầu token) ============
-app.post('/api/scrape', requireAuth, scrapeRoute);
-app.post('/api/import-product', requireAuth, importProductRoute);
+// Endpoints nặng: scrape (Puppeteer), import-product (scrape + save) — apply adminLimiter
+// để chống abuse nếu token lộ. adminLimiter chạy TRƯỚC requireAuth để rate-limit cả
+// request token sai (đỡ tốn CPU verify JWT).
+app.post('/api/scrape', adminLimiter, requireAuth, scrapeRoute);
+app.post('/api/import-product', adminLimiter, requireAuth, importProductRoute);
 
 // ⚠️ Quan trọng: routes có path cụ thể (/admin, /bulk) phải đăng ký TRƯỚC
 //    routes có param (/:id), nếu không Express sẽ match :id="admin" → 404.
@@ -146,7 +159,7 @@ app.get('/api/products/admin', requireAuth, listAdminRoute);
 app.post('/api/products/bulk', requireAuth, bulkSaveRoute);
 app.patch('/api/products/bulk', requireAuth, bulkStatusRoute);
 // Sheet sync — Apps Script paste URL → tự scrape + lưu + trả enriched data về Sheet
-app.post('/api/products/sheet-sync', requireAuth, sheetSyncRoute);
+app.post('/api/products/sheet-sync', adminLimiter, requireAuth, sheetSyncRoute);
 app.post('/api/products', requireAuth, saveRoute);
 app.get('/api/products/:id', getRoute);   // public detail by id (sau /admin)
 app.put('/api/products/:id', requireAuth, (req, res) => {
@@ -173,7 +186,8 @@ app.post('/api/google-sheet/import', requireAuth, importSheetRoute);
 // ============ BACKUP / RESTORE (admin only) ============
 app.get('/api/backup/export', requireAuth, backupExportRoute);
 app.get('/api/backup/export-csv', requireAuth, backupExportCsvRoute);
-app.post('/api/backup/import', requireAuth, backupImportRoute);
+// Backup import có thể ghi đè nhiều bản ghi cùng lúc → limit chặt + auth.
+app.post('/api/backup/import', adminLimiter, requireAuth, backupImportRoute);
 
 // ============ GENERIC CMS RESOURCES ============
 // Mỗi resource có: GET public (active only), GET /admin, GET /:id,

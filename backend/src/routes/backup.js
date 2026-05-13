@@ -17,8 +17,47 @@ import {
 } from '../store/resources.js';
 import { readSettings, writeSettings } from '../store/settings.js';
 import { readSheetSettings, writeSheetSettings } from '../store/sheetSettings.js';
+import { validateProduct } from '../shared/productSchema.js';
 
 const VERSION = 'lion-affiliate-backup/1.0';
+// Giới hạn an toàn: 1 backup không nên chứa quá nhiều bản ghi (chống abuse).
+const MAX_ITEMS_PER_RESOURCE = 10000;
+
+function isPlainObject(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+/**
+ * Validate sơ bộ 1 resource item (video/category/collection/blog).
+ * Yêu cầu là plain object + có slug (categories/collections/blogs cần slug để route public).
+ * Trả { ok: true } hoặc { ok: false, error: '...' }.
+ */
+function validateResourceItem(item, type) {
+  if (!isPlainObject(item)) return { ok: false, error: 'không phải object hợp lệ' };
+  // Videos không yêu cầu slug; còn lại cần slug + name/title
+  if (type === 'categories') {
+    if (!item.slug || typeof item.slug !== 'string' || !item.slug.trim()) {
+      return { ok: false, error: 'thiếu slug' };
+    }
+    if (!item.name || typeof item.name !== 'string' || !item.name.trim()) {
+      return { ok: false, error: 'thiếu name' };
+    }
+  }
+  if (type === 'collections' || type === 'blogs') {
+    if (!item.slug || typeof item.slug !== 'string' || !item.slug.trim()) {
+      return { ok: false, error: 'thiếu slug' };
+    }
+    if (!item.title || typeof item.title !== 'string' || !item.title.trim()) {
+      return { ok: false, error: 'thiếu title' };
+    }
+  }
+  if (type === 'videos') {
+    if (!item.title || typeof item.title !== 'string' || !item.title.trim()) {
+      return { ok: false, error: 'thiếu title' };
+    }
+  }
+  return { ok: true };
+}
 
 export async function backupExportRoute(_req, res) {
   try {
@@ -112,53 +151,89 @@ export async function backupExportCsvRoute(_req, res) {
 export async function backupImportRoute(req, res) {
   try {
     const body = req.body || {};
-    if (!body.data || typeof body.data !== 'object') {
-      return res.status(400).json({ error: 'File backup không hợp lệ — thiếu field `data`.' });
+    if (!isPlainObject(body)) {
+      return res.status(400).json({ error: 'File backup không hợp lệ — body phải là object.' });
     }
-    if (body.version && !body.version.startsWith('lion-affiliate-backup')) {
+    if (!isPlainObject(body.data)) {
+      return res.status(400).json({ error: 'File backup không hợp lệ — thiếu field `data` (object).' });
+    }
+    if (body.version && !String(body.version).startsWith('lion-affiliate-backup')) {
       return res.status(400).json({ error: `File backup không phải của Lion Affiliate (version: ${body.version})` });
     }
+    // Drop unknown top-level keys: chỉ pick các resource hợp lệ.
     const d = body.data;
+    const ALLOWED_RESOURCES = ['products', 'videos', 'categories', 'collections', 'blogs', 'siteSettings', 'googleSheetSettings'];
+    for (const key of Object.keys(d)) {
+      if (!ALLOWED_RESOURCES.includes(key)) {
+        // Bỏ qua, không cảnh báo lỗi — chỉ defend
+        delete d[key];
+      }
+    }
     const report = { products: 0, videos: 0, categories: 0, collections: 0, blogs: 0, errors: [] };
 
-    // Import từng store. Nếu lỗi 1 mục → ghi vào report.errors nhưng tiếp tục.
+    // PRODUCTS — validate qua schema chung (validateProduct).
     if (Array.isArray(d.products)) {
+      if (d.products.length > MAX_ITEMS_PER_RESOURCE) {
+        return res.status(400).json({ error: `products[] quá lớn (max ${MAX_ITEMS_PER_RESOURCE})` });
+      }
       for (const p of d.products) {
-        try { await saveProduct(p); report.products++; }
-        catch (err) { report.errors.push(`product ${p.id}: ${err.message}`); }
+        try {
+          if (!isPlainObject(p)) {
+            report.errors.push('product: không phải object hợp lệ');
+            continue;
+          }
+          const v = validateProduct(p);
+          if (!v.ok) {
+            report.errors.push(`product ${p.id || '(no id)'}: ${v.errors.join('; ')}`);
+            continue;
+          }
+          await saveProduct(p);
+          report.products++;
+        } catch (err) { report.errors.push(`product ${p?.id || '(no id)'}: ${err.message}`); }
       }
     }
-    if (Array.isArray(d.videos)) {
-      for (const v of d.videos) {
-        try { await videosStore.save(v); report.videos++; }
-        catch (err) { report.errors.push(`video ${v.id}: ${err.message}`); }
+    // VIDEOS / CATEGORIES / COLLECTIONS / BLOGS — validate basic shape.
+    const resourceMap = [
+      ['videos', d.videos, videosStore],
+      ['categories', d.categories, categoriesStore],
+      ['collections', d.collections, collectionsStore],
+      ['blogs', d.blogs, blogsStore],
+    ];
+    for (const [type, list, store] of resourceMap) {
+      if (!Array.isArray(list)) continue;
+      if (list.length > MAX_ITEMS_PER_RESOURCE) {
+        return res.status(400).json({ error: `${type}[] quá lớn (max ${MAX_ITEMS_PER_RESOURCE})` });
+      }
+      for (const item of list) {
+        try {
+          const v = validateResourceItem(item, type);
+          if (!v.ok) {
+            report.errors.push(`${type} ${item?.id || item?.slug || '(no id)'}: ${v.error}`);
+            continue;
+          }
+          await store.save(item);
+          report[type]++;
+        } catch (err) {
+          report.errors.push(`${type} ${item?.id || '(no id)'}: ${err.message}`);
+        }
       }
     }
-    if (Array.isArray(d.categories)) {
-      for (const c of d.categories) {
-        try { await categoriesStore.save(c); report.categories++; }
-        catch (err) { report.errors.push(`category ${c.id}: ${err.message}`); }
+    // SETTINGS singletons — chỉ accept plain object, không accept array/null.
+    if (d.siteSettings !== undefined) {
+      if (!isPlainObject(d.siteSettings)) {
+        report.errors.push('siteSettings: phải là object');
+      } else {
+        try { await writeSettings(d.siteSettings); }
+        catch (err) { report.errors.push(`siteSettings: ${err.message}`); }
       }
     }
-    if (Array.isArray(d.collections)) {
-      for (const c of d.collections) {
-        try { await collectionsStore.save(c); report.collections++; }
-        catch (err) { report.errors.push(`collection ${c.id}: ${err.message}`); }
+    if (d.googleSheetSettings !== undefined) {
+      if (!isPlainObject(d.googleSheetSettings)) {
+        report.errors.push('googleSheetSettings: phải là object');
+      } else {
+        try { await writeSheetSettings(d.googleSheetSettings); }
+        catch (err) { report.errors.push(`googleSheetSettings: ${err.message}`); }
       }
-    }
-    if (Array.isArray(d.blogs)) {
-      for (const b of d.blogs) {
-        try { await blogsStore.save(b); report.blogs++; }
-        catch (err) { report.errors.push(`blog ${b.id}: ${err.message}`); }
-      }
-    }
-    if (d.siteSettings && typeof d.siteSettings === 'object') {
-      try { await writeSettings(d.siteSettings); }
-      catch (err) { report.errors.push(`siteSettings: ${err.message}`); }
-    }
-    if (d.googleSheetSettings && typeof d.googleSheetSettings === 'object') {
-      try { await writeSheetSettings(d.googleSheetSettings); }
-      catch (err) { report.errors.push(`googleSheetSettings: ${err.message}`); }
     }
 
     res.json({ ok: true, report });

@@ -44,13 +44,18 @@ export default function ProductDetail() {
     product.affiliateUrl?.trim() ||
     (product.sourceUrl ? getAffiliateUrl(product.sourceUrl) : '#');
   const firstVideo = product.video || product.videos?.[0] || null;
+  // Guard: product có thể thiếu images/platform (data từ Sheet/import lỗi). Không được crash.
+  const images = Array.isArray(product.images) ? product.images : [];
+  const platformLabel = product.platform
+    ? product.platform.charAt(0).toUpperCase() + product.platform.slice(1)
+    : 'cửa hàng';
 
   return (
     <>
       <Seo
         title={product.title}
         description={product.shortDesc || product.fullDesc}
-        image={product.images?.[0]}
+        image={images[0]}
         type="product"
       />
 
@@ -76,16 +81,16 @@ export default function ProductDetail() {
               />
             ) : (
               <LazyImage
-                src={product.images[activeImg]}
+                src={images[activeImg] || images[0]}
                 alt={product.title}
                 aspect="aspect-square"
                 eager
               />
             )}
           </div>
-          {product.images.length > 1 && (
+          {images.length > 1 && (
             <div className="mt-3 flex gap-2 overflow-x-auto scrollbar-hide">
-              {product.images.map((src, i) => (
+              {images.map((src, i) => (
                 <button
                   key={src + i}
                   onClick={() => setActiveImg(i)}
@@ -176,7 +181,7 @@ export default function ProductDetail() {
               rel="noopener nofollow sponsored"
               className="btn-primary py-4 text-base"
             >
-              Mua ngay trên {product.platform.charAt(0).toUpperCase() + product.platform.slice(1)}
+              Mua ngay trên {platformLabel}
               <ArrowRight className="h-5 w-5" />
             </a>
             <button
