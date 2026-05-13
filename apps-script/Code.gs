@@ -50,8 +50,12 @@ const PROP_TOKEN_EXP = 'lion_jwt_exp';
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('🚀 Lion Affiliate')
+    .addItem('🪄 Auto-fill từ URL + Đồng bộ (rows đã chọn)', 'autoFillSelected')
+    .addItem('🪄 Auto-fill từ URL + Đồng bộ (TẤT CẢ)', 'autoFillAll')
+    .addSeparator()
     .addItem('🔄 Đồng bộ ngay (sync all)', 'syncAll')
     .addItem('🎯 Đồng bộ dòng đã chọn', 'syncSelected')
+    .addItem('🔁 Kéo từ Web về Sheet (reverse sync)', 'pullFromWeb')
     .addSeparator()
     .addItem('🔐 Cài đặt tài khoản admin', 'setupCredentials')
     .addItem('🧪 Test kết nối backend', 'testConnection')
@@ -535,4 +539,295 @@ function detectPlatform_(url) {
   if (/lazada\./i.test(url)) return 'lazada';
   if (/tiki\.vn/i.test(url)) return 'tiki';
   return 'other';
+}
+
+// ============================================================================
+// AUTO-FILL TỪ URL  (Forward sync 2-chiều)
+// User chỉ cần paste sourceUrl + affiliateUrl trong Sheet.
+// Apps Script gửi rows tới /api/products/sheet-sync → backend tự scrape +
+// lưu DB → trả về enriched data → Sheet tự writeback các ô trống.
+// ============================================================================
+function autoFillAll() { autoFill_(false); }
+function autoFillSelected() { autoFill_(true); }
+
+function autoFill_(onlySelected) {
+  const ui = SpreadsheetApp.getUi();
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) {
+    ui.alert('Sheet rỗng. Tạo header trước rồi paste link sản phẩm.');
+    return;
+  }
+
+  // Build column index map
+  const rawHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(function (h) { return String(h || '').trim().toLowerCase(); });
+  const idx = {};
+  HEADERS.forEach(function (h) {
+    var i = rawHeaders.indexOf(h.display.toLowerCase());
+    if (i < 0) i = rawHeaders.indexOf(h.field.toLowerCase());
+    if (i >= 0) idx[h.field] = i;
+  });
+  if (idx.sourceUrl === undefined && idx.affiliateUrl === undefined) {
+    ui.alert('Sheet phải có cột "Link gốc" hoặc "Link affiliate". Bấm "📋 Tạo header cột" trước.');
+    return;
+  }
+
+  // Xác định range row
+  var startRow = 2;
+  var numRows = lastRow - 1;
+  if (onlySelected) {
+    const range = sheet.getActiveRange();
+    startRow = Math.max(2, range.getRow());
+    numRows = range.getNumRows();
+    if (startRow + numRows - 1 > lastRow) numRows = lastRow - startRow + 1;
+  }
+
+  const data = sheet.getRange(startRow, 1, numRows, lastCol).getValues();
+  const rows = [];
+  data.forEach(function (row, i) {
+    const get = function (key) {
+      if (idx[key] === undefined) return '';
+      const v = row[idx[key]];
+      return v === null || v === undefined ? '' : String(v).trim();
+    };
+    const sourceUrl = get('sourceUrl');
+    const affiliateUrl = get('affiliateUrl');
+    if (!sourceUrl && !affiliateUrl) return; // bỏ qua row trống URL
+    const rowNum = startRow + i;
+    rows.push({
+      rowNum: rowNum,
+      id: get('id') || undefined,
+      sourceUrl: sourceUrl,
+      affiliateUrl: affiliateUrl,
+      title: get('title'),
+      category: get('category'),
+      description: get('description'),
+      price: parseNum_(get('price')),
+      originalPrice: parseNum_(get('oldPrice')),
+      rating: parseNum_(get('rating')),
+      images: get('image')
+        ? [get('image')].concat(splitList_(get('gallery')).filter(function (g) { return g !== get('image'); }))
+        : splitList_(get('gallery')),
+      videos: get('video') ? [get('video')] : [],
+      tags: splitList_(get('tags')),
+      status: get('status') || 'active',
+    });
+  });
+
+  if (!rows.length) {
+    ui.alert('Không có dòng nào có URL để xử lý.');
+    return;
+  }
+
+  const confirm = ui.alert(
+    'Xác nhận Auto-fill',
+    'Sẽ gọi backend scrape ' + rows.length + ' dòng và tự fill ô trống.\n\n' +
+    'Mỗi dòng mất 1-3 giây để scrape Shopee.\n' +
+    'Tiếp tục?',
+    ui.ButtonSet.YES_NO
+  );
+  if (confirm !== ui.Button.YES) return;
+
+  var token;
+  try { token = getValidToken_(); }
+  catch (err) { ui.alert('❌ Login fail: ' + err.message); return; }
+
+  const res = UrlFetchApp.fetch(BACKEND_URL + '/api/products/sheet-sync', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + token },
+    payload: JSON.stringify({ rows: rows }),
+    muteHttpExceptions: true,
+  });
+  const code = res.getResponseCode();
+  const body = res.getContentText();
+  if (code !== 200) {
+    ui.alert('❌ Sheet-sync fail (' + code + '): ' + body.slice(0, 500));
+    return;
+  }
+  const data2 = JSON.parse(body);
+
+  // Writeback: với mỗi result, fill các ô trống trong Sheet
+  var written = 0;
+  var scrapedCount = 0;
+  (data2.results || []).forEach(function (r) {
+    if (!r.ok || !r.product) return;
+    const rowNum = r.rowNum;
+    const p = r.product;
+    // Helper: chỉ ghi đè nếu ô hiện tại RỖNG (để không phá data user đã nhập)
+    const setIfEmpty = function (field, val) {
+      if (idx[field] === undefined) return;
+      const cell = sheet.getRange(rowNum, idx[field] + 1);
+      const current = String(cell.getValue() || '').trim();
+      if (!current && val !== null && val !== undefined && String(val) !== '') {
+        cell.setValue(val);
+      }
+    };
+    // ID luôn ghi (vì backend sinh id mới)
+    if (idx.id !== undefined) sheet.getRange(rowNum, idx.id + 1).setValue(p.id || '');
+    setIfEmpty('title', p.title);
+    setIfEmpty('description', p.description);
+    setIfEmpty('image', p.image);
+    setIfEmpty('gallery', (p.gallery || []).join(', '));
+    setIfEmpty('video', p.video);
+    setIfEmpty('price', p.priceMin || p.price || '');
+    setIfEmpty('oldPrice', p.oldPriceMin || p.originalPrice || '');
+    setIfEmpty('rating', p.rating);
+    setIfEmpty('category', p.category);
+    setIfEmpty('status', p.status);
+    written++;
+    if (r.scrapeOk) scrapedCount++;
+  });
+
+  const errMsgs = (data2.results || []).filter(function (r) { return !r.ok; }).slice(0, 8)
+    .map(function (r) { return '• Dòng ' + r.rowNum + ': ' + (r.error || 'lỗi không rõ'); });
+
+  ui.alert(
+    '✅ Auto-fill hoàn tất\n\n' +
+    'Tổng: ' + data2.total + '\n' +
+    'Đã lưu lên web + writeback Sheet: ' + written + '\n' +
+    'Scrape OK: ' + scrapedCount + '\n' +
+    'Lỗi: ' + data2.errors +
+    (errMsgs.length ? '\n\nChi tiết lỗi:\n' + errMsgs.join('\n') : '')
+  );
+}
+
+// ============================================================================
+// PULL FROM WEB  (Reverse sync — Web → Sheet)
+// Khi admin sửa data trên web, gọi lệnh này để kéo về Sheet.
+// Chỉ fill các ô đang TRỐNG trong Sheet (không ghi đè data user đã nhập tay).
+// Match theo cột "id".
+// ============================================================================
+function pullFromWeb() {
+  const ui = SpreadsheetApp.getUi();
+  const sheet = SpreadsheetApp.getActiveSheet();
+  const lastRow = sheet.getLastRow();
+  const lastCol = sheet.getLastColumn();
+  if (lastRow < 2) {
+    ui.alert('Sheet rỗng — không có gì để pull.');
+    return;
+  }
+
+  // Build column index map
+  const rawHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(function (h) { return String(h || '').trim().toLowerCase(); });
+  const idx = {};
+  HEADERS.forEach(function (h) {
+    var i = rawHeaders.indexOf(h.display.toLowerCase());
+    if (i < 0) i = rawHeaders.indexOf(h.field.toLowerCase());
+    if (i >= 0) idx[h.field] = i;
+  });
+  if (idx.id === undefined) {
+    ui.alert('Sheet phải có cột "ID" để match với sản phẩm trên web. Bấm "📋 Tạo header cột" trước.');
+    return;
+  }
+
+  var token;
+  try { token = getValidToken_(); }
+  catch (err) { ui.alert('❌ Login fail: ' + err.message); return; }
+
+  // Fetch tất cả products từ web (admin endpoint — bao gồm cả hidden)
+  const res = UrlFetchApp.fetch(BACKEND_URL + '/api/products/admin', {
+    headers: { Authorization: 'Bearer ' + token },
+    muteHttpExceptions: true,
+  });
+  if (res.getResponseCode() !== 200) {
+    ui.alert('❌ Không lấy được data web: ' + res.getContentText().slice(0, 300));
+    return;
+  }
+  const all = JSON.parse(res.getContentText()).products || [];
+  if (!all.length) {
+    ui.alert('Web chưa có sản phẩm nào.');
+    return;
+  }
+  const byId = {};
+  all.forEach(function (p) { if (p.id) byId[p.id] = p; });
+
+  const data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var updated = 0;
+  var skipped = 0;
+  var addedNew = 0;
+  const seenIds = {};
+
+  data.forEach(function (row, i) {
+    const id = String(row[idx.id] || '').trim();
+    if (!id) { skipped++; return; }
+    seenIds[id] = true;
+    const p = byId[id];
+    if (!p) { skipped++; return; }
+    const rowNum = i + 2;
+
+    const setIfEmpty = function (field, val) {
+      if (idx[field] === undefined) return;
+      const cell = sheet.getRange(rowNum, idx[field] + 1);
+      const current = String(cell.getValue() || '').trim();
+      if (!current && val !== null && val !== undefined && String(val) !== '') {
+        cell.setValue(val);
+      }
+    };
+
+    setIfEmpty('title', p.title);
+    setIfEmpty('sourceUrl', p.sourceUrl);
+    setIfEmpty('affiliateUrl', p.affiliateUrl);
+    setIfEmpty('category', p.category);
+    setIfEmpty('description', p.description);
+    setIfEmpty('image', p.images && p.images[0]);
+    setIfEmpty('gallery', p.images && p.images.slice(1).join(', '));
+    setIfEmpty('video', p.video || (p.videos && p.videos[0]));
+    setIfEmpty('price', p.priceMin || p.price);
+    setIfEmpty('oldPrice', p.oldPriceMin || p.originalPrice);
+    setIfEmpty('rating', p.rating);
+    setIfEmpty('tags', (p.tags || []).join(', '));
+    setIfEmpty('isHot', (p.badges || []).indexOf('hot') >= 0 ? 'true' : '');
+    setIfEmpty('isBestSeller', (p.badges || []).indexOf('bestseller') >= 0 ? 'true' : '');
+    setIfEmpty('status', p.status);
+    updated++;
+  });
+
+  // Optional: append các product có trên web nhưng KHÔNG có trong Sheet
+  const missing = all.filter(function (p) { return p.id && !seenIds[p.id]; });
+  if (missing.length) {
+    const yes = ui.alert(
+      'Append products thiếu?',
+      'Có ' + missing.length + ' sản phẩm tồn tại trên web nhưng KHÔNG có trong Sheet.\n' +
+      'Append vào cuối Sheet?',
+      ui.ButtonSet.YES_NO
+    );
+    if (yes === ui.Button.YES) {
+      missing.forEach(function (p) {
+        const row = new Array(lastCol).fill('');
+        const put = function (field, val) {
+          if (idx[field] !== undefined) row[idx[field]] = val == null ? '' : val;
+        };
+        put('id', p.id);
+        put('title', p.title);
+        put('sourceUrl', p.sourceUrl);
+        put('affiliateUrl', p.affiliateUrl);
+        put('category', p.category);
+        put('description', p.description);
+        put('image', p.images && p.images[0]);
+        put('gallery', p.images && p.images.slice(1).join(', '));
+        put('video', p.video || (p.videos && p.videos[0]));
+        put('price', p.priceMin || p.price);
+        put('oldPrice', p.oldPriceMin || p.originalPrice);
+        put('rating', p.rating);
+        put('tags', (p.tags || []).join(', '));
+        put('isHot', (p.badges || []).indexOf('hot') >= 0 ? 'true' : 'false');
+        put('isBestSeller', (p.badges || []).indexOf('bestseller') >= 0 ? 'true' : 'false');
+        put('status', p.status);
+        sheet.appendRow(row);
+        addedNew++;
+      });
+    }
+  }
+
+  ui.alert(
+    '✅ Kéo từ Web hoàn tất\n\n' +
+    'Cập nhật rows đã match: ' + updated + '\n' +
+    'Append rows mới: ' + addedNew + '\n' +
+    'Bỏ qua (không có id / không match): ' + skipped + '\n\n' +
+    '💡 Lưu ý: chỉ fill các ô TRỐNG trong Sheet. Ô đã có data sẽ không bị ghi đè.'
+  );
 }

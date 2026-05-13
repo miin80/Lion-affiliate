@@ -7,6 +7,7 @@ import {
   setStatus,
   bulkSetStatus,
 } from '../store/products.js';
+import { scrape } from '../scrapers/index.js';
 
 /** GET /api/products — chỉ trả sản phẩm status=active (public). */
 export async function listRoute(_req, res) {
@@ -114,6 +115,133 @@ export async function deleteRoute(req, res) {
   try {
     const ok = await deleteProduct(req.params.id);
     res.json({ ok });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+/**
+ * POST /api/products/sheet-sync — endpoint dành riêng Google Sheet Apps Script.
+ * Body: { rows: [{ rowNum, id?, sourceUrl, affiliateUrl, title?, ...partial overrides }] }
+ *
+ * Flow per row:
+ *  1. Nếu title rỗng + có sourceUrl → tự gọi scrape(sourceUrl) để lấy data.
+ *  2. Merge: override từ Sheet thắng > scraped fills gaps.
+ *  3. Upsert vào DB (saveProduct).
+ *  4. Trả lại enriched product để Apps Script writeback vào Sheet.
+ *
+ * Kết quả: user chỉ cần paste 2 URL trong Sheet, gọi endpoint này từ Apps Script
+ * → web tự có sản phẩm + Sheet tự fill các ô trống.
+ */
+export async function sheetSyncRoute(req, res) {
+  try {
+    const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+    if (!rows.length) return res.status(400).json({ error: 'rows[] rỗng' });
+
+    const results = [];
+    for (const row of rows) {
+      const result = { rowNum: row.rowNum, ok: false };
+      try {
+        const sourceUrl = (row.sourceUrl || '').trim();
+        const affiliateUrl = (row.affiliateUrl || '').trim() || sourceUrl;
+        if (!sourceUrl && !affiliateUrl) {
+          throw new Error('Thiếu sourceUrl hoặc affiliateUrl');
+        }
+
+        // Scrape nếu title rỗng (user mới paste URL, chưa fill thông tin)
+        let scraped = null;
+        const titleProvided = !!(row.title && String(row.title).trim());
+        if (!titleProvided && sourceUrl) {
+          try {
+            scraped = await scrape(sourceUrl);
+          } catch (err) {
+            console.warn('[sheet-sync] scrape fail row', row.rowNum, err.message);
+          }
+        }
+
+        // Merge: row (Sheet) wins, scraped fills gaps
+        const pickArr = (sheetVal, scrapedVal) => {
+          if (Array.isArray(sheetVal) && sheetVal.length) return sheetVal;
+          if (Array.isArray(scrapedVal) && scrapedVal.length) return scrapedVal;
+          return [];
+        };
+        const pickNum = (sheetVal, scrapedVal) => {
+          const n = Number(sheetVal);
+          if (Number.isFinite(n) && n > 0) return n;
+          const m = Number(scrapedVal);
+          return Number.isFinite(m) && m > 0 ? m : null;
+        };
+
+        const merged = {
+          id: row.id || undefined,
+          title: (row.title && String(row.title).trim()) || scraped?.title || '',
+          sourceUrl,
+          affiliateUrl,
+          category: row.category || 'gia-dung',
+          description: row.description || scraped?.description || '',
+          price: pickNum(row.price, scraped?.price),
+          originalPrice: pickNum(row.originalPrice, scraped?.originalPrice),
+          priceMin: pickNum(row.priceMin, scraped?.priceMin),
+          priceMax: pickNum(row.priceMax, scraped?.priceMax),
+          oldPriceMin: pickNum(row.oldPriceMin, scraped?.oldPriceMin),
+          oldPriceMax: pickNum(row.oldPriceMax, scraped?.oldPriceMax),
+          discountPercent: pickNum(row.discountPercent, scraped?.discountPercent),
+          rating: pickNum(row.rating, scraped?.rating) || 4.8,
+          ratingCount: pickNum(row.ratingCount, scraped?.ratingCount) || 0,
+          sold: pickNum(row.sold, scraped?.sold) || 0,
+          soldText: row.soldText || scraped?.soldText || '',
+          images: pickArr(row.images, scraped?.images),
+          videos: pickArr(row.videos, scraped?.video ? [scraped.video] : []),
+          tags: Array.isArray(row.tags) ? row.tags : [],
+          badges: Array.isArray(row.badges) ? row.badges : ['reviewed'],
+          status: row.status || 'active',
+          source: 'sheet',
+          platform: scraped?.platform || row.platform || 'other',
+        };
+
+        if (!merged.title) {
+          throw new Error('Không có title — scraper không lấy được và user chưa nhập.');
+        }
+        if (!merged.affiliateUrl) {
+          throw new Error('Thiếu affiliateUrl (link mua).');
+        }
+
+        const saved = await saveProduct(merged);
+        result.ok = true;
+        result.id = saved.id;
+        result.scrapeOk = !!scraped?.title;
+        // Trả lại đủ field để Apps Script writeback vào Sheet
+        result.product = {
+          id: saved.id,
+          title: saved.title,
+          image: saved.images?.[0] || '',
+          gallery: saved.images?.slice(1) || [],
+          video: saved.videos?.[0] || '',
+          price: saved.price,
+          originalPrice: saved.originalPrice,
+          priceMin: saved.priceMin,
+          priceMax: saved.priceMax,
+          oldPriceMin: saved.oldPriceMin,
+          oldPriceMax: saved.oldPriceMax,
+          discountPercent: saved.discountPercent,
+          description: saved.description,
+          rating: saved.rating,
+          soldText: saved.soldText,
+          category: saved.category,
+          status: saved.status,
+        };
+      } catch (err) {
+        result.error = err.message;
+      }
+      results.push(result);
+    }
+
+    res.json({
+      total: rows.length,
+      ok: results.filter((r) => r.ok).length,
+      errors: results.filter((r) => !r.ok).length,
+      results,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -12,6 +12,7 @@ import {
   bulkStatusRoute,
   statusRoute,
   deleteRoute,
+  sheetSyncRoute,
 } from './routes/products.js';
 import { clickRoute, summaryRoute } from './routes/analytics.js';
 import { getSettingsRoute, putSettingsRoute } from './routes/settings.js';
@@ -87,6 +88,8 @@ app.post('/api/import-product', requireAuth, importProductRoute);
 app.get('/api/products/admin', requireAuth, listAdminRoute);
 app.post('/api/products/bulk', requireAuth, bulkSaveRoute);
 app.patch('/api/products/bulk', requireAuth, bulkStatusRoute);
+// Sheet sync — Apps Script paste URL → tự scrape + lưu + trả enriched data về Sheet
+app.post('/api/products/sheet-sync', requireAuth, sheetSyncRoute);
 app.post('/api/products', requireAuth, saveRoute);
 app.get('/api/products/:id', getRoute);   // public detail by id (sau /admin)
 app.put('/api/products/:id', requireAuth, (req, res) => {
