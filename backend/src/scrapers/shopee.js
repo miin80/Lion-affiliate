@@ -367,9 +367,10 @@ function isSeoBlurb(text) {
 
 /**
  * Open Graph fallback — chỉ dùng khi mobile BFF không work.
- * UA Facebook crawler → Shopee serve OG meta nhưng KHÔNG dùng cho cover (vì Shopee
- * trỏ og:image về banner marketing) cũng KHÔNG dùng cho description (SEO blurb).
- * Chỉ rút được title từ đây.
+ * Trả về kèm flag `isPromo` + `isSeoBlurb` để merge step quyết định:
+ *  - Nếu mobile BFF succeed có ảnh/desc thật → skip promo/blurb (filter strict).
+ *  - Nếu mobile BFF fail hoàn toàn → vẫn dùng promo banner + blurb làm fallback
+ *    (còn hơn form trắng — user có thể xoá tay).
  */
 async function tryShopeeHtml(url) {
   console.log(`[shopee-html] Fetch as fb-bot: ${url}`);
@@ -396,14 +397,14 @@ async function tryShopeeHtml(url) {
     const cleanTitle = (t) =>
       (t || '').replace(/\s*[|·-]\s*Shopee.*$/i, '').replace(/\s*Mua ngay tại Shopee.*$/i, '').trim();
     const title = cleanTitle(og.title) || cleanTitle(docTitle) || '';
-    // KHÔNG dùng og:image nếu là promo banner (Shopee đa số trả banner làm og:image).
-    const images = og.image && !isPromoImageUrl(og.image) ? [og.image] : [];
-    // KHÔNG dùng og:description nếu là SEO blurb auto-gen.
-    const description = isSeoBlurb(og.description) ? '' : (og.description || '');
+    const images = og.image ? [og.image] : [];
+    const imagePromo = images.length > 0 && isPromoImageUrl(images[0]);
+    const description = og.description || '';
+    const descSeoBlurb = isSeoBlurb(description);
     console.log(
-      `[shopee-html] og.title="${title?.slice(0, 40)}" image=${og.image ? (isPromoImageUrl(og.image) ? 'PROMO(skip)' : 'real') : 'none'} desc=${isSeoBlurb(og.description) ? 'SEO-blurb(skip)' : 'kept'}`
+      `[shopee-html] title="${title?.slice(0, 40)}" img=${og.image ? (imagePromo ? 'promo' : 'real') : 'none'} desc=${descSeoBlurb ? 'SEO-blurb' : 'real'}`
     );
-    return { title, description, images };
+    return { title, description, images, _imagePromo: imagePromo, _descSeoBlurb: descSeoBlurb };
   } catch (err) {
     console.warn('[shopee-html] failed:', err.message);
     return null;
@@ -476,7 +477,17 @@ export async function scrapeShopee(url) {
   // cách nào auto lấy giá miễn phí từ server. User dùng "📋 Dán giá nhanh" (1 paste)
   // hoặc bookmarklet (1 click trong tab Shopee) để fill giá.
   let merged = mergeResults(apiData, bffData);
-  merged = mergeResults(merged, htmlData);
+
+  if (htmlData) {
+    // Smart filter: nếu bff/api đã có ảnh thật → bỏ promo image của html khỏi merge.
+    //                Nếu chưa có gì → vẫn nhận promo (còn hơn form trắng — user xoá tay).
+    const hasImages = (merged?.images?.length || 0) > 0;
+    const hasDesc = (merged?.description || '').length > 0;
+    const htmlSafe = { ...htmlData };
+    if (hasImages && htmlData._imagePromo) htmlSafe.images = [];
+    if (hasDesc && htmlData._descSeoBlurb) htmlSafe.description = '';
+    merged = mergeResults(merged, htmlSafe);
+  }
 
   // Slug URL fallback cho title
   if (merged && !merged.title) {
