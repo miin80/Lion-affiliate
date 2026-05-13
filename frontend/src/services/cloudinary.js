@@ -18,19 +18,77 @@ const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || '';
 export const CLOUDINARY_ENABLED = Boolean(CLOUD_NAME && UPLOAD_PRESET);
 
 /**
- * Upload file → trả về URL ảnh.
- * onProgress(percent): callback hiển thị progress bar.
+ * Compress + resize image trước khi upload.
+ * - Resize: max 1920px cạnh dài (giữ tỉ lệ)
+ * - Output: JPEG 85% quality
+ * - Giảm 60-80% dung lượng → upload nhanh + tiết kiệm bandwidth Cloudinary.
+ * Skip nếu file không phải image hoặc đã <500KB.
  */
-export function uploadToCloudinary(file, { onProgress } = {}) {
+async function compressImage(file, maxSize = 1920, quality = 0.85) {
+  if (!file.type.startsWith('image/')) return file;
+  if (file.size < 500 * 1024) return file; // <500KB skip
+  if (file.type === 'image/gif') return file; // giữ GIF nguyên
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) {
+            h = Math.round(h * (maxSize / w));
+            w = maxSize;
+          } else {
+            w = Math.round(w * (maxSize / h));
+            h = maxSize;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(file);
+            const compressed = new File([blob], file.name.replace(/\.\w+$/, '.jpg'), {
+              type: 'image/jpeg',
+            });
+            // Nếu compressed nặng hơn original (hiếm) thì dùng original
+            resolve(compressed.size < file.size ? compressed : file);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Upload file → trả về URL ảnh.
+ * - Tự compress trước nếu file > 500KB
+ * - onProgress(percent): callback hiển thị progress bar.
+ */
+export async function uploadToCloudinary(file, { onProgress } = {}) {
   if (!CLOUDINARY_ENABLED) {
-    return Promise.reject(new Error('Cloudinary chưa được cấu hình.'));
+    throw new Error('Cloudinary chưa được cấu hình.');
   }
+
+  // Compress trước khi upload
+  const optimized = await compressImage(file).catch(() => file);
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', optimized);
     formData.append('upload_preset', UPLOAD_PRESET);
 
     xhr.upload.addEventListener('progress', (e) => {

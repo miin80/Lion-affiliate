@@ -5,6 +5,7 @@ import Footer from './components/Footer';
 import BottomNav from './components/BottomNav';
 import StickyCTA from './components/StickyCTA';
 import ProtectedRoute from './components/ProtectedRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Code-splitting để tải nhanh hơn
 const Home = lazy(() => import('./pages/Home'));
@@ -30,6 +31,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <main className="min-h-[60vh] pb-24 sm:pb-0">
+        <ErrorBoundary>
         <Suspense fallback={<Fallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -53,6 +55,7 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
+        </ErrorBoundary>
       </main>
       <Footer />
       <StickyCTA />

@@ -7,11 +7,12 @@ import { useResource } from '../hooks/useResource';
 import { blogsApi } from '../services/resources';
 import { BLOG_POSTS as MOCK_BLOG } from '../data/blogPosts';
 import { SHOW_DEMO_DATA } from '../utils/demoFlag';
+import { BlogListSkeleton } from '../components/Skeletons';
 
 export default function Blog() {
   // Production: rỗng = empty state. Dev: mock fallback.
   const fallback = SHOW_DEMO_DATA ? MOCK_BLOG : [];
-  const { items } = useResource(blogsApi, fallback, 'lion_affiliate_blogs_v2');
+  const { items, loading } = useResource(blogsApi, fallback, 'lion_affiliate_blogs_v2');
   return (
     <>
       <Seo title="Blog Review" description="Top sản phẩm nên mua, review chi tiết, so sánh." />
@@ -22,7 +23,13 @@ export default function Blog() {
         </p>
       </section>
 
-      {items.length === 0 && (
+      {loading && items.length === 0 && (
+        <section className="container-page mt-6">
+          <BlogListSkeleton count={6} />
+        </section>
+      )}
+
+      {!loading && items.length === 0 && (
         <section className="container-page mt-6">
           <div className="flex flex-col items-center gap-3 rounded-3xl bg-brand-ink-50 p-10 text-center">
             <div className="text-5xl">📝</div>

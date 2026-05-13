@@ -6,11 +6,23 @@ import { collectionsApi } from '../services/resources';
 import { ArrowRight } from './icons';
 import { COLLECTIONS as MOCK_COLLECTIONS } from '../data/collections';
 import { SHOW_DEMO_DATA } from '../utils/demoFlag';
+import { CollectionsSkeleton } from './Skeletons';
 
 export default function Collections() {
   // Production: rỗng → section ẩn. Dev: mock fallback.
   const fallback = SHOW_DEMO_DATA ? MOCK_COLLECTIONS : [];
-  const { items } = useResource(collectionsApi, fallback, 'lion_affiliate_collections_v2');
+  const { items, loading } = useResource(collectionsApi, fallback, 'lion_affiliate_collections_v2');
+
+  if (loading && !items.length) {
+    return (
+      <section className="container-page mt-10 sm:mt-14">
+        <div className="mb-4">
+          <div className="skeleton h-6 w-56 rounded" />
+        </div>
+        <CollectionsSkeleton count={4} />
+      </section>
+    );
+  }
   if (!items.length) return null;
   return (
     <section className="container-page mt-10 sm:mt-14">

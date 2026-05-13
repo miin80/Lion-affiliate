@@ -6,13 +6,25 @@ import { videosApi } from '../services/resources';
 import { useProducts } from '../hooks/useProducts';
 import { VIDEOS as MOCK_VIDEOS } from '../data/videos';
 import { SHOW_DEMO_DATA } from '../utils/demoFlag';
+import { VideoReelsSkeleton } from './Skeletons';
 
 export default function VideoReels() {
   // Production: rỗng → section ẩn. Dev (SHOW_DEMO_DATA=true): mock fallback để test UI.
   const fallback = SHOW_DEMO_DATA ? MOCK_VIDEOS : [];
-  const { items } = useResource(videosApi, fallback, 'lion_affiliate_videos_v2');
+  const { items, loading } = useResource(videosApi, fallback, 'lion_affiliate_videos_v2');
   const { products } = useProducts();
 
+  // Loading lần đầu (cache rỗng): hiện skeleton
+  if (loading && !items.length) {
+    return (
+      <section className="container-page mt-10 sm:mt-14">
+        <div className="mb-4">
+          <div className="skeleton h-6 w-48 rounded" />
+        </div>
+        <VideoReelsSkeleton count={4} />
+      </section>
+    );
+  }
   if (!items.length) return null;
   return (
     <section id="video-reviews" className="container-page mt-10 scroll-mt-6 sm:mt-14">
