@@ -10,6 +10,7 @@ import { getAffiliateUrl } from '../config/affiliate';
 import { getProductBySlug } from '../data/products';
 import ProductCard from '../components/ProductCard';
 import { useProducts } from '../hooks/useProducts';
+import { trackClick } from '../services/analytics';
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -179,6 +180,7 @@ export default function ProductDetail() {
               href={affiliate}
               target="_blank"
               rel="noopener nofollow sponsored"
+              onClick={() => trackClick({ type: 'product', id: product.id, action: 'buy' })}
               className="btn-primary py-4 text-base"
             >
               Mua ngay trên {platformLabel}

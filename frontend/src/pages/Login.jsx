@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import Seo from '../components/Seo';
 import { login, isAuthenticated } from '../services/auth';
@@ -17,10 +17,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw] = useState(false);
 
-  // Đã login rồi → vào thẳng admin
-  if (isAuthenticated()) {
-    navigate(from, { replace: true });
-  }
+  // Đã login rồi → redirect vào admin (useEffect tránh side-effect trong render → React warning).
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate(from, { replace: true });
+    }
+  }, [navigate, from]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -11,6 +11,33 @@ const STATUS_FILTERS = [
   { key: 'errors', label: 'Có lỗi' },
 ];
 
+// Validate URL phải là Google Sheet hợp lệ. 3 patterns chấp nhận:
+//  1. https://docs.google.com/spreadsheets/d/<ID>/...
+//  2. https://docs.google.com/spreadsheets/d/<ID>/export?format=csv&...
+//  3. https://docs.google.com/spreadsheets/d/.../pub?output=csv (publish to web)
+function validateSheetUrl(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return 'Vui lòng dán Google Sheet URL.';
+  let u;
+  try {
+    u = new URL(s);
+  } catch {
+    return 'URL không hợp lệ (sai format).';
+  }
+  if (u.hostname !== 'docs.google.com') {
+    return 'URL phải bắt đầu bằng https://docs.google.com/spreadsheets/...';
+  }
+  if (!u.pathname.startsWith('/spreadsheets/')) {
+    return 'URL phải có path /spreadsheets/d/<sheet-id>/...';
+  }
+  // Có spreadsheet ID? (/spreadsheets/d/<ID>)
+  const idMatch = u.pathname.match(/\/spreadsheets\/d\/([\w-]{20,})/);
+  if (!idMatch) {
+    return 'URL thiếu sheet ID. Mở Sheet → Share / Publish → copy link.';
+  }
+  return null; // OK
+}
+
 export default function GoogleSheetManager() {
   const [csvUrl, setCsvUrl] = useState('');
   const [pushWebAppUrl, setPushWebAppUrl] = useState('');
@@ -55,8 +82,9 @@ export default function GoogleSheetManager() {
 
   const handleSaveUrl = async () => {
     setError('');
-    if (!csvUrl.trim()) {
-      setError('Vui lòng dán Google Sheet URL.');
+    const validationError = validateSheetUrl(csvUrl);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setSaving(true);
@@ -90,8 +118,9 @@ export default function GoogleSheetManager() {
     setRows([]);
     setSummary(null);
     setSelected(new Set());
-    if (!csvUrl.trim()) {
-      setError('Vui lòng lưu URL trước khi đồng bộ.');
+    const validationError = validateSheetUrl(csvUrl);
+    if (validationError) {
+      setError(validationError);
       return;
     }
     setPreviewing(true);

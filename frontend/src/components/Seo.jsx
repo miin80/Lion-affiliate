@@ -26,7 +26,7 @@ export default function Seo({
   const finalImage =
     image ||
     (brandingOg && brandingOg.startsWith('http') ? brandingOg : null) ||
-    (isHttpsAvatar ? avatarUrl : `${SITE.url}/og-cover.jpg`);
+    (isHttpsAvatar ? avatarUrl : `${SITE.url}/og-cover.svg`);
   const finalUrl = url || (typeof window !== 'undefined' ? window.location.href : SITE.url);
   const favicon = settings?.branding?.favicon;
 
