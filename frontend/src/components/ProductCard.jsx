@@ -93,47 +93,47 @@ export default function ProductCard({ product, index = 0, onOpen }) {
         )}
       </div>
 
-      {/* Body */}
-      <div className="flex flex-1 flex-col gap-1.5 p-3 sm:p-4">
-        <h3 className="line-clamp-2 text-[13px] font-semibold leading-snug text-brand-ink-900 sm:text-sm">
+      {/* Body — compact, alignment đảm bảo bằng min-h title + mt-auto CTA */}
+      <div className="flex flex-1 flex-col gap-1 p-2.5 sm:p-3">
+        {/* Title — luôn chiếm 2 line height để price/CTA align ngang giữa card */}
+        <h3
+          className="line-clamp-2 min-h-[2.6em] text-[13px] font-semibold leading-snug text-brand-ink-900 sm:text-sm"
+          title={product.title}
+        >
           {product.title}
         </h3>
 
-        {product.shortDesc && (
-          <p className="line-clamp-1 text-[11px] text-brand-ink-500 sm:text-xs">
-            {product.shortDesc}
-          </p>
-        )}
-
-        <Rating value={product.rating} count={product.reviewCount} />
-
-        <div className="mt-1 flex items-end justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-base font-extrabold text-brand-orange-600 sm:text-lg">
-              {priceLabel || formatVND(product.price)}
-            </div>
-            {hasOldPrice && (
-              <div className="truncate text-[10px] text-brand-ink-400 line-through sm:text-xs">
-                {oldPriceLabel}
-              </div>
-            )}
-          </div>
+        {/* Rating + Sold trên cùng 1 dòng để tiết kiệm vertical space */}
+        <div className="flex items-center justify-between gap-1.5">
+          <Rating value={product.rating} count={product.reviewCount} />
           {soldDisplay && (
-            <div className="shrink-0 text-right text-[10px] text-brand-ink-500 sm:text-xs">
+            <span className="shrink-0 text-[10px] text-brand-ink-500 sm:text-[11px]">
               Đã bán {soldDisplay}
+            </span>
+          )}
+        </div>
+
+        {/* Price block — Shopee style, range không xuống dòng (truncate). */}
+        <div className="min-w-0">
+          <div className="truncate whitespace-nowrap text-sm font-extrabold text-brand-orange-600 sm:text-base">
+            {priceLabel || formatVND(product.price) || '—'}
+          </div>
+          {hasOldPrice && (
+            <div className="truncate whitespace-nowrap text-[10px] text-brand-ink-400 line-through sm:text-[11px]">
+              {oldPriceLabel}
             </div>
           )}
         </div>
 
-        {/* CTA group */}
-        <div className="mt-2 grid grid-cols-2 gap-1.5">
+        {/* CTA — mt-auto đẩy xuống đáy → CTA mọi card thẳng hàng */}
+        <div className="mt-auto grid grid-cols-2 gap-1.5 pt-1.5">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
               onOpen?.(product);
             }}
-            className="rounded-full bg-brand-ink-100 px-2 py-2 text-[11px] font-semibold text-brand-ink-800 transition hover:bg-brand-ink-200 sm:text-xs"
+            className="rounded-full bg-brand-ink-100 px-2 py-1.5 text-[11px] font-semibold text-brand-ink-800 transition hover:bg-brand-ink-200 sm:text-xs"
           >
             Xem deal
           </button>
@@ -145,7 +145,7 @@ export default function ProductCard({ product, index = 0, onOpen }) {
               e.stopPropagation();
               trackClick({ type: 'product', id: product.id, action: 'buy' });
             }}
-            className="inline-flex items-center justify-center gap-1 rounded-full bg-brand-orange-500 px-2 py-2 text-[11px] font-bold text-white shadow-cta transition hover:bg-brand-orange-600 sm:text-xs"
+            className="inline-flex items-center justify-center gap-1 rounded-full bg-brand-orange-500 px-2 py-1.5 text-[11px] font-bold text-white shadow-cta transition hover:bg-brand-orange-600 sm:text-xs"
           >
             Mua ngay <ArrowRight className="h-3 w-3" />
           </a>

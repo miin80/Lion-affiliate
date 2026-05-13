@@ -62,7 +62,7 @@ export default function TopBestseller({ onOpen, products }) {
                   className="block w-28 shrink-0 sm:w-auto"
                 >
                   <LazyImage
-                    src={p.images[0]}
+                    src={p.images?.[0]}
                     alt={p.title}
                     aspect="aspect-square"
                     className="rounded-xl sm:rounded-none"

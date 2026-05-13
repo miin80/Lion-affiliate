@@ -67,9 +67,9 @@ export default function Home() {
                 onSortChange={setSort}
               />
 
-              <section id="product-grid" className="container-page mt-4 scroll-mt-6 sm:mt-6">
+              <section id="product-grid" className="container-page mt-3 scroll-mt-6 sm:mt-5">
                 {(loading || filtered.length > 0) && (
-                  <div className="mb-3 flex items-center justify-between text-xs text-brand-ink-500">
+                  <div className="mb-2 flex items-center justify-between text-xs text-brand-ink-500">
                     <span>
                       {loading ? 'Đang tải...' : `${filtered.length} sản phẩm${search && ` cho "${search}"`}`}
                     </span>

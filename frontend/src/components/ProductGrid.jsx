@@ -45,7 +45,10 @@ export default function ProductGrid({
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:gap-5">
+    // auto-rows-fr: mọi row có CÙNG height = card cao nhất trong row → CTA mọi card
+    // thẳng hàng. Dòng cuối có 1 sản phẩm cũng KHÔNG bị stretch (grid track theo
+    // grid-cols cố định, item chỉ chiếm 1 cell).
+    <div className="grid auto-rows-fr grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:gap-5">
       {products.map((p, i) => (
         <ProductCard key={p.id || p.slug} product={p} index={i} onOpen={onOpen} />
       ))}
