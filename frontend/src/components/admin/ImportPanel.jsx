@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PlatformBadge from '../PlatformBadge';
 import ProductCard from '../ProductCard';
 import MediaListEditor from './MediaListEditor';
@@ -48,6 +49,41 @@ export default function ImportPanel() {
   const [draft, setDraft] = useState(EMPTY);
   const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Bookmarklet auto-fill: nếu có ?prefill=<base64-json>, decode + setDraft.
+  useEffect(() => {
+    const prefill = searchParams.get('prefill');
+    if (!prefill) return;
+    try {
+      const json = decodeURIComponent(escape(atob(prefill)));
+      const data = JSON.parse(json);
+      setDraft((d) => ({
+        ...d,
+        sourceUrl: data.sourceUrl || d.sourceUrl,
+        affiliateUrl: data.affiliateUrl || d.affiliateUrl,
+        title: data.title || d.title,
+        images: Array.isArray(data.images) && data.images.length ? data.images : d.images,
+        priceMin: data.priceMin || d.priceMin,
+        priceMax: data.priceMax || d.priceMax,
+        price: data.priceMin || d.price,
+        oldPriceMin: data.oldPriceMin || d.oldPriceMin,
+        oldPriceMax: data.oldPriceMax || d.oldPriceMax,
+        originalPrice: data.oldPriceMin || d.originalPrice,
+        discountPercent: data.discountPercent || d.discountPercent,
+        rating: typeof data.rating === 'number' ? data.rating : d.rating,
+        soldText: data.soldText || d.soldText,
+      }));
+      setPreviewOpen(true);
+      // Xoá param khỏi URL để reload không re-trigger
+      const next = new URLSearchParams(searchParams);
+      next.delete('prefill');
+      setSearchParams(next, { replace: true });
+    } catch (err) {
+      console.warn('[ImportPanel] prefill decode fail:', err.message);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [error, setError] = useState('');
   const [warning, setWarning] = useState('');
   const [success, setSuccess] = useState('');

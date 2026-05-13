@@ -15,6 +15,7 @@ import CollectionTrash from '../components/admin/CollectionTrash';
 import BlogTrash from '../components/admin/BlogTrash';
 import CategoryTrash from '../components/admin/CategoryTrash';
 import ImportPanel from '../components/admin/ImportPanel';
+import BookmarkletGenerator from '../components/admin/BookmarkletGenerator';
 
 /**
  * Admin — route-based navigation. Mỗi tab có URL riêng.
@@ -46,6 +47,7 @@ export default function Admin() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="import-san-pham" element={<ImportPanel />} />
+          <Route path="bookmarklet" element={<BookmarkletGenerator />} />
           <Route path="san-pham" element={<ProductManager />} />
           <Route path="video-review" element={<VideoManager />} />
           <Route path="bo-suu-tap" element={<CollectionsManager />} />

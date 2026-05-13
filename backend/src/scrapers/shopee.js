@@ -410,9 +410,10 @@ export async function scrapeShopee(url) {
     htmlData = await tryShopeeHtml(url);
   }
 
-  // Ưu tiên chain merge:
-  //  apiData (có giá thật) > bffData (có gallery+rating+mô tả) > htmlData (chỉ OG basic)
-  // Mỗi nguồn fill những field nó có; field rỗng sẽ được nguồn tiếp theo bù vào.
+  // Merge chain: apiData (đủ giá nếu may) > bffData (gallery/rating/desc) > htmlData (OG basic)
+  // Note: Shopee chặn ALL API + redirect Puppeteer sang /verify/traffic/error → KHÔNG có
+  // cách nào auto lấy giá miễn phí từ server. User dùng "📋 Dán giá nhanh" (1 paste)
+  // hoặc bookmarklet (1 click trong tab Shopee) để fill giá.
   let merged = mergeResults(apiData, bffData);
   merged = mergeResults(merged, htmlData);
 
@@ -430,12 +431,6 @@ export async function scrapeShopee(url) {
       `[shopee] ✅ Final: title="${merged.title?.slice(0, 50)}" imgs=${merged.images?.length || 0} price=${merged.price ?? '-'} range=${merged.priceMin ?? '-'}-${merged.priceMax ?? '-'} disc=${merged.discountPercent ?? '-'} rating=${merged.rating ?? '-'} desc=${merged.description?.length || 0}ch`
     );
     return merged;
-  }
-
-  // Puppeteer fallback (chỉ khi enabled)
-  if (USE_PUPPETEER) {
-    const { scrapeWithPuppeteer } = await import('./puppeteer-meta.js');
-    return scrapeWithPuppeteer(url, { waitMs: 4000 });
   }
 
   return null;
